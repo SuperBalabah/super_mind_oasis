@@ -23,8 +23,10 @@
 
 html, body {
   width: 100%;
-  height: 100dvh;
-  min-height: 100dvh;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
   background-color: var(--bg-deep);
   color: var(--text-primary);
@@ -33,10 +35,14 @@ html, body {
 }
 
 #app {
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100vw;
-  height: 100dvh;
-  min-height: 100dvh;
+  height: 100vh;
+  min-height: 100%;
   overflow: hidden;
 }
 
@@ -44,6 +50,8 @@ html, body {
   position: absolute;
   top: 0;
   left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
   height: 100%;
   z-index: 1;
@@ -95,19 +103,19 @@ html, body {
   opacity: 0.45;
 }
 
-/* Floating Center Hint */
+/* Floating Center Hint (positioned below top controls to avoid overlap) */
 .center-hint {
   position: absolute;
-  top: max(18px, env(safe-area-inset-top));
+  top: calc(max(14px, env(safe-area-inset-top)) + 48px);
   left: 50%;
   transform: translateX(-50%);
-  padding: 6px 16px;
+  padding: 5px 14px;
   border-radius: 20px;
   background: rgba(14, 20, 26, 0.35);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  font-size: 0.74rem;
-  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
   color: var(--text-secondary);
   pointer-events: none;
   z-index: 5;
@@ -115,17 +123,17 @@ html, body {
   white-space: nowrap;
 }
 
-/* --- BORDERLESS BOTTOM NAV (Pure Clean Minimal Icons, No ugly circles, No text!) --- */
+/* --- BORDERLESS BOTTOM NAV (Pure Clean Minimal Icons anchored closer to bottom) --- */
 .floating-bottom-nav {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 0 20px calc(env(safe-area-inset-bottom, 0px) + 24px) 20px;
+  padding: 0 20px calc(env(safe-area-inset-bottom, 0px) + 8px) 20px;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 38px;
+  gap: 40px;
   z-index: 10;
   pointer-events: none;
 }
@@ -134,7 +142,7 @@ html, body {
   pointer-events: auto;
   background: transparent;
   border: none;
-  padding: 10px;
+  padding: 6px;
   color: rgba(246, 248, 250, 0.75);
   cursor: pointer;
   display: flex;

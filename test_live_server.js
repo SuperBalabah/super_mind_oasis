@@ -147,19 +147,22 @@ async function run() {
     assert(false, `Failed to verify collision avoidance: ${e.message}`);
   }
 
-  // 9. Test mobile layout fixes, inverted rotation, expanded zoom & decluttered modal
+  // 9. Test mobile layout fixes, vertical tilt direction, full viewport bounds & lowered bottom nav
   try {
     const sceneRes = await fetch('http://localhost:5173/src/scene3d.js');
     const sceneCode = await sceneRes.text();
-    assert(sceneCode.includes('this.targetRotationY -= deltaX'), 'scene3d.js inverts rotation drag direction for intuitive direct manipulation');
+    assert(sceneCode.includes('this.targetRotationY -= deltaX'), 'scene3d.js inverts horizontal swipe for intuitive spin');
+    assert(sceneCode.includes('this.targetRotationX + deltaY * 0.005'), 'scene3d.js inverts vertical drag back to natural tilt');
     assert(sceneCode.includes('Math.min(19.0'), 'scene3d.js expands zoom range to 19.0 for full mobile island visibility');
-    assert(sceneCode.includes('initialFov = aspect < 1.0'), 'scene3d.js implements responsive portrait FOV in init()');
     assert(sceneCode.includes('coneHeight = 1.65'), 'scene3d.js trims the island underbelly cone to prevent eating up screen height');
+    assert(sceneCode.includes('document.body.style.backgroundColor = skyHex'), 'scene3d.js dynamically matches body background color to sky');
 
     const cssRes = await fetch('http://localhost:5173/styles.css');
     const cssCode = await cssRes.text();
+    assert(cssCode.includes('position: fixed') && cssCode.includes('bottom: 0'), 'styles.css locks #app to full viewport bounds to eliminate bottom black strip');
+    assert(cssCode.includes('calc(env(safe-area-inset-bottom, 0px) + 8px)'), 'styles.css lowers bottom nav distance closer to edge');
     assert(cssCode.includes('left: 0') && cssCode.includes('right: auto'), 'styles.css places .top-controls on top left away from pet widget');
-    assert(cssCode.includes('100dvh'), 'styles.css uses 100dvh for reliable mobile viewport height');
+    assert(cssCode.includes('.center-hint') && cssCode.includes('+ 48px'), 'styles.css offsets center hint below top icons to avoid overlap');
     assert(cssCode.includes('.type-item-desc') && cssCode.includes('display: none;'), 'styles.css hides verbose card text to keep plant modal airy and uncluttered');
   } catch (e) {
     assert(false, `Failed to verify mobile enhancements: ${e.message}`);

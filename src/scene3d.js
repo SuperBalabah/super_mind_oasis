@@ -1281,6 +1281,20 @@ export class Scene3D {
       this.rainGroup.visible = true;
       this.fireLight.intensity = 1.8;
     }
+
+    const skyColors = {
+      day: '#7fb8db',
+      sunset: '#281924',
+      night: '#0e131a',
+      rain: '#151b22'
+    };
+    const skyHex = skyColors[mode] || '#0e1419';
+    if (typeof document !== 'undefined') {
+      if (document.body) document.body.style.backgroundColor = skyHex;
+      if (document.documentElement) document.documentElement.style.backgroundColor = skyHex;
+      const metaTheme = document.querySelector('meta[name="theme-color"]');
+      if (metaTheme) metaTheme.setAttribute('content', skyHex);
+    }
   }
 
   buildFloatingParticles() {
@@ -1409,9 +1423,9 @@ export class Scene3D {
         }
       }
 
-      // Invert swipe rotation direction for natural, direct-touch interaction
+      // Direct touch rotation: horizontal follows finger, vertical follows natural tilt
       this.targetRotationY -= deltaX * 0.007;
-      this.targetRotationX = Math.max(0.12, Math.min(0.85, this.targetRotationX - deltaY * 0.005));
+      this.targetRotationX = Math.max(0.12, Math.min(0.85, this.targetRotationX + deltaY * 0.005));
       this.previousMousePosition = { x: e.clientX, y: e.clientY };
     });
 
