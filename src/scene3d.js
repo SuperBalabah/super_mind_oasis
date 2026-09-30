@@ -779,33 +779,216 @@ export class Scene3D {
     petGroup.add(dishGroup);
     petGroup.userData.feedDish = dishGroup;
 
-    // Initial safe meadow positions (away from water)
-    const waypoints = [
-      { x: -0.7, z: 0.3 },
-      { x: 0.5, z: 0.3 },
-      { x: -0.2, z: 1.2 },
-      { x: 1.2, z: 0.8 },
-      { x: -1.2, z: 0.2 },
-      { x: 0.8, z: -0.2 },
-      { x: 0.2, z: 0.7 }
-    ];
-    const initialPos = waypoints[initialIndex % waypoints.length];
+    const initialPos = this.getSafePetSpawnPoint(initialIndex);
+    const initialGroundY = this.getGroundHeight(initialPos.x, initialPos.z);
 
-    petGroup.position.set(initialPos.x, 0.28, initialPos.z);
+    petGroup.position.set(initialPos.x, initialGroundY, initialPos.z);
     petGroup.userData.aiState = {
       x: initialPos.x,
       z: initialPos.z,
       targetX: initialPos.x,
       targetZ: initialPos.z,
-      rotation: 0,
+      rotation: Math.random() * Math.PI * 2,
       state: 'idle', // 'idle' | 'walking' | 'sitting' | 'focused' | 'eating' | 'jumping'
       timer: 2.0 + initialIndex * 1.2,
       eatTimer: 0,
       jumpProgress: 0,
-      speed: 0.3 + (initialIndex % 3) * 0.05
+      speed: 0.28 + (initialIndex % 3) * 0.04
     };
 
     return petGroup;
+  }
+
+  // --- PROCEDURAL GROUND HEIGHT (FOLLOWS ISLAND SURFACE WAVE DEFORMATION) ---
+  getGroundHeight(x, z) {
+    const dist = Math.sqrt(x * x + z * z);
+    const radius = 3.8;
+    const wave = Math.sin(x * 1.4) * Math.cos(z * 1.4) * 0.16 - (dist / radius) * 0.14;
+    return 0.28 + wave;
+  }
+
+  // --- COMPREHENSIVE OBSTACLE DETECTOR (POND, CAMPFIRE, TENT, ROCKS, ALL TREES) ---
+  getStaticObstacles() {
+    const obstacles = [
+      // Zen Pond (water mesh + surrounding banks)
+      { name: 'pond', x: -0.4, z: -0.9, radius: 1.45 },
+      // Cozy tent & support poles
+      { name: 'tent', x: -2.0, z: 1.25, radius: 0.95 },
+      // Campfire & burning wood logs & hot stones
+      { name: 'campfire', x: -1.25, z: 0.7, radius: 0.65 },
+      // Landscape decorative boulders
+      { name: 'rock1', x: -2.3, z: -0.3, radius: 0.5 },
+      { name: 'rock2', x: -1.9, z: -1.1, radius: 0.45 },
+      { name: 'rock3', x: 2.1, z: 1.4, radius: 0.55 },
+      { name: 'rock4', x: 2.5, z: -0.7, radius: 0.5 }
+    ];
+
+    // Dynamic Tree Obstacles (all active trees currently planted on the island)
+    if (this.treeMeshes && this.treeMeshes.length > 0) {
+      this.treeMeshes.forEach(tree => {
+        if (tree && tree.position) {
+          obstacles.push({
+            name: 'tree_' + (tree.userData?.treeId || 't'),
+            x: tree.position.x,
+            z: tree.position.z,
+            radius: 0.65
+          });
+        }
+      });
+    }
+
+    return obstacles;
+  }
+
+  // Check if candidate point is collision-free and respects island boundaries
+  isPositionSafe(x, z, myPetIdx, requiredClearance = 0.38) {
+    const islandDist = Math.sqrt(x * x + z * z);
+    if (islandDist > 2.25) return false;
+
+    const obstacles = this.getStaticObstacles();
+    for (const obs of obstacles) {
+      const dx = x - obs.x;
+      const dz = z - obs.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < (obs.radius + requiredClearance)) {
+        return false;
+      }
+    }
+
+    if (this.petInstances) {
+      for (let i = 0; i < this.petInstances.length; i++) {
+        if (i === myPetIdx) continue;
+        const otherState = this.petInstances[i].userData?.aiState;
+        if (!otherState) continue;
+
+        const dxCur = x - otherState.x;
+        const dzCur = z - otherState.z;
+        if (Math.sqrt(dxCur * dxCur + dzCur * dzCur) < 0.65) return false;
+
+        const dxTar = x - otherState.targetX;
+        const dzTar = z - otherState.targetZ;
+        if (Math.sqrt(dxTar * dxTar + dzTar * dzTar) < 0.65) return false;
+      }
+    }
+
+    return true;
+  }
+
+  // Physical collision resolution: repels away from obstacles, other pets, and edge void
+  resolvePositionCollision(currX, currZ, myPetIdx) {
+    let x = currX;
+    let z = currZ;
+    const MAX_RADIUS = 2.35; // Strict meadow perimeter (never slope into void)
+
+    // 1. Resolve against all static obstacles (Pond, Campfire, Tent, Rocks, Trees)
+    const obstacles = this.getStaticObstacles();
+    for (const obs of obstacles) {
+      const dx = x - obs.x;
+      const dz = z - obs.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      const minDist = obs.radius + 0.32;
+      if (dist < minDist) {
+        if (dist > 0.001) {
+          const push = minDist - dist;
+          x += (dx / dist) * push;
+          z += (dz / dist) * push;
+        } else {
+          x += 0.35;
+          z += 0.35;
+        }
+      }
+    }
+
+    // 2. Resolve against other pets (mutual repulsion, anti-clipping)
+    if (this.petInstances && this.petInstances.length > 1) {
+      this.petInstances.forEach((otherMesh, oIdx) => {
+        if (oIdx === myPetIdx) return;
+        const otherState = otherMesh.userData?.aiState;
+        if (!otherState) return;
+
+        const dx = x - otherState.x;
+        const dz = z - otherState.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const minPetDist = 0.65; // Healthy personal space between pets
+        if (dist < minPetDist) {
+          if (dist > 0.001) {
+            const overlap = minPetDist - dist;
+            const pushFactor = 0.55;
+            x += (dx / dist) * (overlap * pushFactor);
+            z += (dz / dist) * (overlap * pushFactor);
+            if (otherState.state !== 'eating' && otherState.state !== 'eating_hold') {
+              otherState.x -= (dx / dist) * (overlap * (1 - pushFactor));
+              otherState.z -= (dz / dist) * (overlap * (1 - pushFactor));
+            }
+          } else {
+            x += (oIdx % 2 === 0 ? 0.32 : -0.32);
+            z += (oIdx % 2 === 0 ? 0.32 : -0.32);
+          }
+        }
+      });
+    }
+
+    // 3. Keep strictly inside safe island boundary (NEVER float out into void)
+    const islandDist = Math.sqrt(x * x + z * z);
+    if (islandDist > MAX_RADIUS) {
+      x = (x / islandDist) * MAX_RADIUS;
+      z = (z / islandDist) * MAX_RADIUS;
+    }
+
+    return { x, z };
+  }
+
+  // Generates unique, obstacle-free wander targets across the open meadow
+  pickSafeWanderTarget(myPetIdx) {
+    const candidateZones = [
+      { x: 0.5, z: 0.4 },
+      { x: 1.3, z: 0.6 },
+      { x: -0.1, z: 1.3 },
+      { x: 0.8, z: 1.4 },
+      { x: 1.4, z: 1.2 },
+      { x: 0.9, z: -0.2 },
+      { x: 0.3, z: 0.8 },
+      { x: -0.5, z: 1.5 },
+      { x: 1.6, z: 0.2 },
+      { x: 0.1, z: 0.3 }
+    ];
+
+    const shuffled = [...candidateZones].sort(() => Math.random() - 0.5);
+
+    for (const base of shuffled) {
+      const candX = base.x + (Math.random() - 0.5) * 0.4;
+      const candZ = base.z + (Math.random() - 0.5) * 0.4;
+      if (this.isPositionSafe(candX, candZ, myPetIdx, 0.35)) {
+        return { x: candX, z: candZ };
+      }
+    }
+
+    for (let attempts = 0; attempts < 16; attempts++) {
+      const angle = Math.random() * Math.PI * 2;
+      const r = 0.5 + Math.random() * 1.5;
+      const candX = Math.cos(angle) * r;
+      const candZ = Math.sin(angle) * r;
+      if (this.isPositionSafe(candX, candZ, myPetIdx, 0.35)) {
+        return { x: candX, z: candZ };
+      }
+    }
+
+    return this.resolvePositionCollision(0.5 + myPetIdx * 0.2, 0.5, myPetIdx);
+  }
+
+  getSafePetSpawnPoint(petIndex) {
+    const defaultSlots = [
+      { x: 0.6, z: 0.4 },
+      { x: 1.3, z: 0.7 },
+      { x: 0.1, z: 1.3 },
+      { x: -0.4, z: 1.4 },
+      { x: 1.0, z: -0.1 },
+      { x: 0.8, z: 1.2 },
+      { x: 1.5, z: 0.3 },
+      { x: 0.2, z: 0.6 }
+    ];
+    const base = defaultSlots[petIndex % defaultSlots.length];
+    return this.resolvePositionCollision(base.x, base.z, petIndex);
   }
 
   updatePets(petsData) {
@@ -819,6 +1002,21 @@ export class Scene3D {
       this.petsGroup.add(mesh);
       this.petInstances.push(mesh);
     });
+
+    // Instant separation pass for all newly spawned pets so they never overlap
+    for (let p = 0; p < 4; p++) {
+      this.petInstances.forEach((mesh, idx) => {
+        const s = mesh.userData.aiState;
+        if (s) {
+          const res = this.resolvePositionCollision(s.x, s.z, idx);
+          s.x = res.x;
+          s.z = res.z;
+          mesh.position.x = s.x;
+          mesh.position.z = s.z;
+          mesh.position.y = this.getGroundHeight(s.x, s.z);
+        }
+      });
+    }
   }
 
   // --- PROCEDURAL MIND TREES ---
@@ -1423,6 +1621,11 @@ export class Scene3D {
 
     // Direct in-world holding feeding state
     if (s.state === 'eating_hold') {
+      const groundY = this.getGroundHeight(s.x, s.z);
+      petMesh.position.y = groundY;
+      petMesh.position.x = s.x;
+      petMesh.position.z = s.z;
+
       if (petMesh.userData.headGroup) {
         const baseY = petMesh.userData.baseHeadY || 0.22;
         petMesh.userData.headGroup.position.y = baseY - 0.07 + Math.sin(time * 14) * 0.025;
@@ -1437,6 +1640,11 @@ export class Scene3D {
     // Eating / Feeding animation state
     if (s.state === 'eating') {
       s.eatTimer -= delta;
+      const groundY = this.getGroundHeight(s.x, s.z);
+      petMesh.position.y = groundY;
+      petMesh.position.x = s.x;
+      petMesh.position.z = s.z;
+
       if (petMesh.userData.headGroup) {
         const baseY = petMesh.userData.baseHeadY || 0.22;
         petMesh.userData.headGroup.position.y = baseY - 0.07 + Math.sin(time * 12) * 0.025;
@@ -1456,7 +1664,10 @@ export class Scene3D {
     // Gentle looking up affectionately (短按：抬個頭看著你，溫和優雅)
     if (s.state === 'looking_up') {
       s.lookTimer -= delta;
-      petMesh.position.y = 0.28; // stays calmly on ground
+      const groundY = this.getGroundHeight(s.x, s.z);
+      petMesh.position.y = groundY;
+      petMesh.position.x = s.x;
+      petMesh.position.z = s.z;
 
       if (petMesh.userData.headGroup) {
         const baseY = petMesh.userData.baseHeadY || 0.22;
@@ -1483,7 +1694,10 @@ export class Scene3D {
     // Happy contented nod after feeding completes (溫柔點頭感謝，不再誇張跳高空)
     if (s.state === 'happy_nod') {
       s.happyTimer -= delta;
-      petMesh.position.y = 0.28 + Math.max(0, Math.sin(time * 10) * 0.035);
+      const groundY = this.getGroundHeight(s.x, s.z);
+      petMesh.position.y = groundY + Math.max(0, Math.sin(time * 10) * 0.035);
+      petMesh.position.x = s.x;
+      petMesh.position.z = s.z;
 
       if (petMesh.userData.headGroup) {
         const baseY = petMesh.userData.baseHeadY || 0.22;
@@ -1500,7 +1714,7 @@ export class Scene3D {
           petMesh.userData.headGroup.rotation.z = 0;
           petMesh.userData.headGroup.rotation.x = 0;
         }
-        petMesh.position.y = 0.28;
+        petMesh.position.y = this.getGroundHeight(s.x, s.z);
         s.state = 'idle';
         s.timer = 2.5;
       }
@@ -1517,23 +1731,14 @@ export class Scene3D {
     s.timer -= delta;
     if (s.timer <= 0) {
       if (s.state === 'idle' || s.state === 'sitting') {
-        const waypoints = [
-          { x: -0.7, z: 0.3 },
-          { x: 0.5, z: 0.3 },
-          { x: -0.2, z: 1.2 },
-          { x: 1.2, z: 0.8 },
-          { x: -1.2, z: 0.2 },
-          { x: 0.8, z: -0.2 },
-          { x: 0.2, z: 0.7 }
-        ];
-        const next = waypoints[(Math.floor(Math.random() * waypoints.length) + idx) % waypoints.length];
-        s.targetX = next.x;
-        s.targetZ = next.z;
+        const target = this.pickSafeWanderTarget(idx);
+        s.targetX = target.x;
+        s.targetZ = target.z;
         s.state = 'walking';
-        s.timer = 4.5;
+        s.timer = 4.8;
       } else {
         s.state = Math.random() > 0.4 ? 'sitting' : 'idle';
-        s.timer = 3.0 + Math.random() * 4.0;
+        s.timer = 3.0 + Math.random() * 3.5;
       }
     }
 
@@ -1544,15 +1749,32 @@ export class Scene3D {
 
       if (dist > 0.05) {
         const speed = s.speed * delta;
-        s.x += (dx / dist) * speed;
-        s.z += (dz / dist) * speed;
-        s.rotation = Math.atan2(dx, dz);
-        petMesh.position.y = 0.28 + Math.abs(Math.sin(time * 10 + idx)) * 0.03;
+        const nextX = s.x + (dx / dist) * speed;
+        const nextZ = s.z + (dz / dist) * speed;
+
+        // Continuous real-time collision resolution against obstacles, trees, other pets, and edge void
+        const resolved = this.resolvePositionCollision(nextX, nextZ, idx);
+        const actualDx = resolved.x - s.x;
+        const actualDz = resolved.z - s.z;
+        if (Math.abs(actualDx) > 0.0001 || Math.abs(actualDz) > 0.0001) {
+          s.rotation = Math.atan2(actualDx, actualDz);
+        }
+        s.x = resolved.x;
+        s.z = resolved.z;
+
+        const groundY = this.getGroundHeight(s.x, s.z);
+        petMesh.position.y = groundY + Math.abs(Math.sin(time * 10 + idx)) * 0.03;
       } else {
         s.state = 'idle';
-        s.timer = 2.5;
-        petMesh.position.y = 0.28;
+        s.timer = 2.5 + Math.random() * 2.0;
+        petMesh.position.y = this.getGroundHeight(s.x, s.z);
       }
+    } else {
+      // Idle or sitting: gently enforce personal space and boundary constraints
+      const resolved = this.resolvePositionCollision(s.x, s.z, idx);
+      s.x = resolved.x;
+      s.z = resolved.z;
+      petMesh.position.y = this.getGroundHeight(s.x, s.z);
     }
 
     if (petMesh.userData.tail) {

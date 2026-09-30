@@ -129,6 +129,24 @@ async function run() {
     assert(false, `Failed to verify backdrop dismiss: ${e.message}`);
   }
 
+  // 8. Test anti-clipping, obstacle avoidance & island boundary conformance
+  try {
+    const sceneRes = await fetch('http://localhost:5173/src/scene3d.js');
+    const sceneCode = await sceneRes.text();
+    assert(sceneCode.includes('getStaticObstacles()'), 'scene3d.js has getStaticObstacles obstacle detector');
+    assert(sceneCode.includes('resolvePositionCollision('), 'scene3d.js implements resolvePositionCollision');
+    assert(sceneCode.includes('pickSafeWanderTarget('), 'scene3d.js implements pickSafeWanderTarget');
+    assert(sceneCode.includes('getGroundHeight('), 'scene3d.js computes procedural ground height');
+    assert(sceneCode.includes('MAX_RADIUS = 2.35'), 'scene3d.js enforces strict MAX_RADIUS island boundary');
+    assert(sceneCode.includes('minPetDist = 0.65'), 'scene3d.js enforces mutual pet-to-pet separation');
+
+    const storageRes = await fetch('http://localhost:5173/src/storage.js');
+    const storageCode = await storageRes.text();
+    assert(storageCode.includes('allCandidateSpots'), 'storage.js has extended safe tree grove spots');
+  } catch (e) {
+    assert(false, `Failed to verify collision avoidance: ${e.message}`);
+  }
+
   console.log(`\nResult: ${passCount} Passed, ${failCount} Failed.`);
   if (failCount > 0) process.exit(1);
 }

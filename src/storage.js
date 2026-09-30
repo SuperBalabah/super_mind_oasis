@@ -399,18 +399,30 @@ export const Storage = {
   },
 
   findFreeSpot(existingTrees) {
-    for (const spot of SAFE_TREE_SPOTS) {
+    const allCandidateSpots = [
+      ...SAFE_TREE_SPOTS,
+      { x: 0.55, z: 2.15 },
+      { x: -0.85, z: 2.10 },
+      { x: 2.15, z: 1.05 },
+      { x: 1.85, z: -1.35 },
+      { x: -1.05, z: -1.95 },
+      { x: 0.15, z: -2.15 }
+    ];
+
+    for (const spot of allCandidateSpots) {
       const occupied = existingTrees.some(t => {
         if (!t.position) return false;
         const dx = t.position.x - spot.x;
         const dz = t.position.z - spot.z;
-        return Math.sqrt(dx * dx + dz * dz) < 0.85;
+        return Math.sqrt(dx * dx + dz * dz) < 0.82;
       });
       if (!occupied) return spot;
     }
-    const angle = (Math.random() * 0.8 + 0.1) * Math.PI;
-    const dist = 1.3 + Math.random() * 0.8;
-    return { x: Math.cos(angle) * dist + 0.6, z: Math.sin(angle) * dist };
+
+    // Jittered fallback in safe east grove away from pond, campfire & tent
+    const angle = 0.2 * Math.PI + Math.random() * 0.45 * Math.PI;
+    const dist = 1.4 + Math.random() * 0.6;
+    return { x: Math.cos(angle) * dist + 0.5, z: Math.sin(angle) * dist + 0.4 };
   },
 
   exportAllData() {
