@@ -111,7 +111,6 @@ class App {
 
     this.scene.onPetHoldStart = (petData) => {
       sound.playFeedingNibble();
-      this.showToast(`🌿 正在餵食陪伴【${petData.name}】...`, 1600);
     };
 
     this.scene.updateTrees(Storage.getTrees());
@@ -468,10 +467,9 @@ class App {
     });
   }
 
-  // Pet in-world short-tap greeting (In-game toast feedback, NO invasive modal popup!)
+  // Pet in-world short-tap greeting (Gentle curious head raise, zero annoying banners!)
   onPetTapped(petData) {
     sound.playPetChirp();
-    this.showToast(`🐾【${petData.name}】好奇地抬起頭看著你（長按可餵食陪伴）`);
   }
 
   // Pet in-world long-press feeding (Direct in-game fulfillment)

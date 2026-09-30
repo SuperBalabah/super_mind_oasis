@@ -974,14 +974,14 @@ export class Scene3D {
     if (!s) return;
 
     s.state = 'eating';
-    s.eatTimer = 2.4;
+    s.eatTimer = 3.2; // Extended peaceful eating time
 
     if (petMesh.userData.feedDish) {
       petMesh.userData.feedDish.visible = true;
     }
 
-    // Spawn 5 floating heart particles above the pet with soft pastel colors
-    for (let i = 0; i < 5; i++) {
+    // Spawn 6 floating heart particles above the pet with soft pastel colors
+    for (let i = 0; i < 6; i++) {
       const heartMat = new THREE.MeshBasicMaterial({
         color: i % 2 === 0 ? 0xff8fa3 : 0xffd285,
         side: THREE.DoubleSide
@@ -993,7 +993,7 @@ export class Scene3D {
         petMesh.position.z + (Math.random() - 0.5) * 0.35
       );
       this.heartsGroup.add(hMesh);
-      this.floatingHearts.push({ mesh: hMesh, life: 1.8 });
+      this.floatingHearts.push({ mesh: hMesh, life: 2.5 });
     }
   }
 
@@ -1001,19 +1001,18 @@ export class Scene3D {
     const s = petMesh.userData.aiState;
     const petData = petMesh.userData.petData;
 
-    // Gentle contented nod (不再大動作高空旋轉跳躍)
+    // After 1300ms hold, pet continues happily finishing the meal from the bowl for 2.4s, then gentle happy nod
     if (s) {
-      s.state = 'happy_nod';
-      s.happyTimer = 1.3;
+      s.state = 'eating';
+      s.eatTimer = 2.4;
     }
 
-    if (petMesh.userData.headGroup) {
-      petMesh.userData.headGroup.position.y = petMesh.userData.baseHeadY || 0.22;
-      petMesh.userData.headGroup.rotation.z = 0;
+    if (petMesh.userData.feedDish) {
+      petMesh.userData.feedDish.visible = true;
     }
 
     // Spawn floating heart particles & sparkles
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       const heartMat = new THREE.MeshBasicMaterial({
         color: i % 2 === 0 ? 0xff8fa3 : 0xffd285,
         side: THREE.DoubleSide
@@ -1025,15 +1024,8 @@ export class Scene3D {
         petMesh.position.z + (Math.random() - 0.5) * 0.35
       );
       this.heartsGroup.add(hMesh);
-      this.floatingHearts.push({ mesh: hMesh, life: 1.8 });
+      this.floatingHearts.push({ mesh: hMesh, life: 2.5 });
     }
-
-    // Keep dish visible for 1.4s then hide
-    setTimeout(() => {
-      if (petMesh.userData.feedDish && s.state !== 'eating_hold') {
-        petMesh.userData.feedDish.visible = false;
-      }
-    }, 1400);
 
     if (this.onPetFeed) {
       this.onPetFeed(petData);
@@ -1172,13 +1164,14 @@ export class Scene3D {
 
           if (this.onPetHoldStart) this.onPetHoldStart(petData);
 
-          // Long-press timer (480ms)
+          // Long-press timer (1300ms for a peaceful, deliberate feeding interaction)
+          const FEED_HOLD_TIME = 1300;
           this.petHoldTimer = setTimeout(() => {
             if (this.isPetHolding && this.activePetPressed === hitObj) {
               this.isPetHolding = false;
               this.completePetFeed(hitObj);
             }
-          }, 480);
+          }, FEED_HOLD_TIME);
         }
       }
     });
@@ -1227,8 +1220,8 @@ export class Scene3D {
         const petObj = this.activePetPressed;
         this.activePetPressed = null;
 
-        // If it was a short tap (< 480ms)
-        if (elapsed < 480 && this.dragDistance < 12 && this.isPetHolding) {
+        // If it was a short tap (< 450ms)
+        if (elapsed < 450 && this.dragDistance < 12 && this.isPetHolding) {
           this.isPetHolding = false;
           // Hide dish immediately
           if (petObj.userData.feedDish) petObj.userData.feedDish.visible = false;
@@ -1236,9 +1229,25 @@ export class Scene3D {
           // Gentle curious head raise (抬個頭看著你) - peaceful and subtle!
           if (petObj.userData.aiState) {
             petObj.userData.aiState.state = 'looking_up';
-            petObj.userData.aiState.lookTimer = 1.8;
+            petObj.userData.aiState.lookTimer = 2.0;
           }
           if (this.onPetTap) this.onPetTap(petObj.userData.petData);
+          return;
+        }
+
+        // If released midway between tap and full feed (450ms ~ 1300ms)
+        if (this.isPetHolding) {
+          this.isPetHolding = false;
+          if (petObj.userData.feedDish) petObj.userData.feedDish.visible = false;
+          if (petObj.userData.headGroup) {
+            petObj.userData.headGroup.position.y = petObj.userData.baseHeadY || 0.22;
+            petObj.userData.headGroup.rotation.z = 0;
+            petObj.userData.headGroup.rotation.x = 0;
+          }
+          if (petObj.userData.aiState) {
+            petObj.userData.aiState.state = 'idle';
+            petObj.userData.aiState.timer = 2.0;
+          }
           return;
         }
 
@@ -1435,7 +1444,7 @@ export class Scene3D {
       if (s.eatTimer <= 0) {
         if (petMesh.userData.feedDish) petMesh.userData.feedDish.visible = false;
         s.state = 'happy_nod';
-        s.happyTimer = 1.3;
+        s.happyTimer = 1.8;
       }
       return;
     }

@@ -69,10 +69,20 @@ async function run() {
     assert(code.includes('showToast'), 'app.js includes showToast HUD implementation');
     assert(code.includes('onPetHoldStart'), 'app.js handles onPetHoldStart');
     assert(code.includes('onPetTapped'), 'app.js handles onPetTapped');
-    assert(!code.includes('onPetTapped(petData) {\n    sound.playPetChirp();\n    this.openHabitModal();'), 'onPetTapped does NOT open modal');
+    assert(!code.includes('onPetTapped(petData) {\n    sound.playPetChirp();\n    this.showToast'), 'onPetTapped does NOT show banner toast');
     assert(code.includes('次陪伴'), 'app.js displays organic "次陪伴"');
   } catch (e) {
     assert(false, `Failed to fetch app.js: ${e.message}`);
+  }
+
+  // 5. Test scene3d hold timer is extended
+  try {
+    const res = await fetch('http://localhost:5173/src/scene3d.js');
+    const code = await res.text();
+    assert(code.includes('FEED_HOLD_TIME = 1300'), 'scene3d.js has lengthened feeding hold time (1300ms)');
+    assert(code.includes('eatTimer = 2.4'), 'scene3d.js gives pet extra 2.4s to finish eating from bowl');
+  } catch (e) {
+    assert(false, `Failed to verify scene3d: ${e.message}`);
   }
 
   console.log(`\nResult: ${passCount} Passed, ${failCount} Failed.`);

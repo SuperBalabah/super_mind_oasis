@@ -297,29 +297,24 @@ class SoundEngine {
     if (!this.ctx) return;
 
     const now = this.ctx.currentTime;
-    // 3 rhythmic cute nibble crunch clicks
-    for (let i = 0; i < 3; i++) {
-      const delay = i * 0.14;
+    // 5 rhythmic cute nibble crunch clicks over ~1.1s
+    for (let i = 0; i < 5; i++) {
+      const delay = i * 0.22;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(450 + (i % 2) * 80, now + delay);
-      osc.frequency.exponentialRampToValueAtTime(220, now + delay + 0.06);
+      osc.frequency.setValueAtTime(440 + (i % 2) * 60, now + delay);
+      osc.frequency.exponentialRampToValueAtTime(210, now + delay + 0.07);
 
       gain.gain.setValueAtTime(0.18, now + delay);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.09);
 
       osc.connect(gain);
       gain.connect(this.masterGain);
 
       osc.start(now + delay);
-      osc.stop(now + delay + 0.09);
+      osc.stop(now + delay + 0.1);
     }
-
-    // Followed by a warm, joyful bell shimmer
-    setTimeout(() => {
-      this.playPetChirp();
-    }, 450);
   }
 
   playInsightChime() {
