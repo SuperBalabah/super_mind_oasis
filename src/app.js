@@ -41,6 +41,7 @@ class App {
       btnHoldNurture: document.getElementById('btn-hold-nurture'),
       holdProgressFill: document.getElementById('hold-progress-fill'),
       btnTreeHarvest: document.getElementById('btn-tree-harvest'),
+      btnTreeDelete: document.getElementById('btn-tree-delete'),
 
       // Modals
       modalPlant: document.getElementById('modal-plant'),
@@ -65,6 +66,7 @@ class App {
       ringsContainer: document.getElementById('rings-container'),
       btnExportBackup: document.getElementById('btn-export-backup'),
       inputImportBackup: document.getElementById('input-import-backup'),
+      btnResetBlank: document.getElementById('btn-reset-blank'),
 
       // Multi-Pet Habit Modal
       modalHabit: document.getElementById('modal-habit'),
@@ -179,6 +181,22 @@ class App {
       this.openModal(this.dom.modalHarvest);
     });
 
+    // Delete / Chop Down Tree
+    if (this.dom.btnTreeDelete) {
+      this.dom.btnTreeDelete.addEventListener('click', () => {
+        if (!this.selectedTree) return;
+        const tree = this.selectedTree;
+        if (confirm(`確定要剷除並移出這棵課題之樹【${tree.title}】嗎？`)) {
+          Storage.deleteTree(tree.id);
+          this.closeTreeCard();
+          this.selectedTree = null;
+          this.scene.updateTrees(Storage.getTrees());
+          sound.playWaterDrop();
+          this.showToast(`🍃 已剷除【${tree.title}】`);
+        }
+      });
+    }
+
     this.dom.btnHarvestCancel.addEventListener('click', () => this.closeModal(this.dom.modalHarvest));
 
     this.dom.formHarvest.addEventListener('submit', (e) => {
@@ -272,6 +290,23 @@ class App {
       };
       reader.readAsText(file);
     });
+
+    // Reset All Island Data to Blank Canvas
+    if (this.dom.btnResetBlank) {
+      this.dom.btnResetBlank.addEventListener('click', () => {
+        if (confirm('確定要將小島歸零重置為全新空白狀態嗎？\n所有預設與現存的課題樹、寵物夥伴和歷史年輪都將清空。')) {
+          Storage.clearAllToBlank();
+          this.closeTreeCard();
+          this.selectedTree = null;
+          this.scene.updateTrees([]);
+          this.scene.updatePets([]);
+          this.renderPetsList();
+          this.openArchiveModal();
+          sound.playWaterDrop();
+          this.showToast('🍃 已成功將心靈綠洲歸零重置為全新空白！');
+        }
+      });
+    }
 
     // Multi-Pet Modal
     this.dom.btnHabitOpen.addEventListener('click', () => this.openHabitModal());
@@ -445,15 +480,18 @@ class App {
           <div class="pet-card-habit">守護習慣：${pet.habitTitle}</div>
           <div style="font-size:0.7rem; color:rgba(255,255,255,0.4); margin-top:2px;">可在島上長按小動物直接餵食陪伴</div>
         </div>
-        <div style="display:flex; align-items:center; gap:12px;">
+        <div style="display:flex; align-items:center; gap:8px;">
           <div class="pet-card-streak" title="累計陪伴次數">${pet.careCount || 1} 次陪伴</div>
-          <button class="btn-ghost" style="padding:6px 12px; font-size:0.75rem;">
+          <button class="btn-ghost btn-feed-pet" style="padding:6px 12px; font-size:0.75rem;">
             餵食陪伴
+          </button>
+          <button class="btn-ghost-danger btn-release-pet" style="padding:6px 10px; font-size:0.75rem;" title="放生夥伴回歸自然">
+            放生
           </button>
         </div>
       `;
 
-      const feedBtn = card.querySelector('button');
+      const feedBtn = card.querySelector('.btn-feed-pet');
       feedBtn.addEventListener('click', () => {
         Storage.nurturePet(pet.id);
         sound.playFeedingNibble();
@@ -461,6 +499,17 @@ class App {
         if (petMesh) this.scene.feedPet(petMesh);
         this.showToast(`✨ 陪伴【${pet.name}】完成「${pet.habitTitle}」`);
         this.renderPetsList();
+      });
+
+      const releaseBtn = card.querySelector('.btn-release-pet');
+      releaseBtn.addEventListener('click', () => {
+        if (confirm(`確定要放生【${pet.name}】嗎？小夥伴將告別綠洲回歸大自然。`)) {
+          Storage.deletePet(pet.id);
+          this.scene.updatePets(Storage.getPets());
+          sound.playPetChirp();
+          this.showToast(`🍃【${pet.name}】已回歸山林大自然`);
+          this.renderPetsList();
+        }
       });
 
       container.appendChild(card);
@@ -540,7 +589,12 @@ class App {
               <div class="tree-card-name">${item.title}</div>
               <div class="tree-card-sub">${typeInfo.name} · ${item.isActive ? '島上生長中' : '已釋懷圓滿'} · 歷時 ${days} 天</div>
             </div>
-            <div class="tree-card-arrow">❯</div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              ${!item.isActive ? `
+                <button type="button" class="btn-ghost-danger btn-delete-ring" data-id="${item.id}" style="padding:4px 8px; font-size:0.7rem;" title="刪除此年輪記錄">刪除</button>
+              ` : ''}
+              <div class="tree-card-arrow">❯</div>
+            </div>
           </div>
 
           <div class="journey-timeline-drawer">
@@ -564,6 +618,19 @@ class App {
           card.classList.toggle('expanded');
           sound.playWaterDrop();
         });
+
+        const deleteRingBtn = card.querySelector('.btn-delete-ring');
+        if (deleteRingBtn) {
+          deleteRingBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm(`確定要刪除這枚歷史年輪記錄【${item.title}】嗎？`)) {
+              Storage.deleteRing(item.id);
+              sound.playWaterDrop();
+              this.openArchiveModal();
+              this.showToast(`🍃 已刪除【${item.title}】年輪記錄`);
+            }
+          });
+        }
 
         container.appendChild(card);
       });

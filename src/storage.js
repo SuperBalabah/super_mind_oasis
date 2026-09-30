@@ -168,15 +168,22 @@ export const Storage = {
   getTrees() {
     try {
       const data = localStorage.getItem(STORAGE_KEY_TREES);
-      if (!data) {
+      if (data === null) {
         const initial = [DEFAULT_INITIAL_TREE];
         this.saveTrees(initial);
         return initial;
       }
       return JSON.parse(data);
     } catch (e) {
-      return [DEFAULT_INITIAL_TREE];
+      return [];
     }
+  },
+
+  deleteTree(treeId) {
+    let trees = this.getTrees();
+    trees = trees.filter(t => t.id !== treeId);
+    this.saveTrees(trees);
+    return trees;
   },
 
   saveTrees(trees) {
@@ -263,15 +270,22 @@ export const Storage = {
   getRings() {
     try {
       const data = localStorage.getItem(STORAGE_KEY_RINGS);
-      if (!data) {
+      if (data === null) {
         const initial = [DEFAULT_INITIAL_RING];
         this.saveRings(initial);
         return initial;
       }
       return JSON.parse(data);
     } catch (e) {
-      return [DEFAULT_INITIAL_RING];
+      return [];
     }
+  },
+
+  deleteRing(ringId) {
+    let rings = this.getRings();
+    rings = rings.filter(r => r.id !== ringId);
+    this.saveRings(rings);
+    return rings;
   },
 
   saveRings(rings) {
@@ -284,7 +298,7 @@ export const Storage = {
   getPets() {
     try {
       const data = localStorage.getItem(STORAGE_KEY_PETS);
-      if (!data) {
+      if (data === null) {
         this.savePets(DEFAULT_INITIAL_PETS);
         return DEFAULT_INITIAL_PETS;
       }
@@ -417,5 +431,11 @@ export const Storage = {
     } catch (e) {
       return false;
     }
+  },
+
+  clearAllToBlank() {
+    this.saveTrees([]);
+    this.savePets([]);
+    this.saveRings([]);
   }
 };

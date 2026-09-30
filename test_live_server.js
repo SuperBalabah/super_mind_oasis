@@ -85,6 +85,28 @@ async function run() {
     assert(false, `Failed to verify scene3d: ${e.message}`);
   }
 
+  // 6. Test delete & reset functionality
+  try {
+    const htmlRes = await fetch('http://localhost:5173/');
+    const html = await htmlRes.text();
+    assert(html.includes('id="btn-tree-delete"'), 'Live HTML contains #btn-tree-delete button');
+    assert(html.includes('id="btn-reset-blank"'), 'Live HTML contains #btn-reset-blank button');
+
+    const storageRes = await fetch('http://localhost:5173/src/storage.js');
+    const storageCode = await storageRes.text();
+    assert(storageCode.includes('deleteTree(treeId)'), 'storage.js includes deleteTree method');
+    assert(storageCode.includes('deletePet(petId)'), 'storage.js includes deletePet method');
+    assert(storageCode.includes('deleteRing(ringId)'), 'storage.js includes deleteRing method');
+    assert(storageCode.includes('clearAllToBlank()'), 'storage.js includes clearAllToBlank method');
+
+    const appRes = await fetch('http://localhost:5173/src/app.js');
+    const appCode = await appRes.text();
+    assert(appCode.includes('btn-release-pet'), 'app.js handles pet release');
+    assert(appCode.includes('btn-delete-ring'), 'app.js handles ring deletion');
+  } catch (e) {
+    assert(false, `Failed to verify delete & reset: ${e.message}`);
+  }
+
   console.log(`\nResult: ${passCount} Passed, ${failCount} Failed.`);
   if (failCount > 0) process.exit(1);
 }
