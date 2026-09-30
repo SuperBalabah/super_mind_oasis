@@ -308,7 +308,7 @@ export class Scene3D {
     this.campfireGroup.add(this.fireEmbers);
   }
 
-  // --- PROCEDURAL PET CREATION WITH INTERACTIVE FEEDING DISH ---
+  // --- PROCEDURAL PET CREATION WITH DETAILED FACES & EXPRESSIVE FEATURES ---
   createPetMesh(petData, initialIndex = 0) {
     const petGroup = new THREE.Group();
     petGroup.name = petData.id;
@@ -317,17 +317,23 @@ export class Scene3D {
     const species = petData.species || 'sheep';
 
     if (species === 'sheep') {
-      const woolMat = new THREE.MeshStandardMaterial({ color: 0xf6f3eb, roughness: 0.95, flatShading: true });
-      const faceMat = new THREE.MeshStandardMaterial({ color: 0xd9cca8, roughness: 0.8, flatShading: true });
+      const woolMat = new THREE.MeshStandardMaterial({ color: 0xf7f4ec, roughness: 0.95, flatShading: true });
+      const faceMat = new THREE.MeshStandardMaterial({ color: 0xd8c8a4, roughness: 0.8, flatShading: true });
       const darkMat = new THREE.MeshStandardMaterial({ color: 0x3d352e, roughness: 0.9 });
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x161312 });
+      const gleamMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const noseMat = new THREE.MeshStandardMaterial({ color: 0xcc9999, roughness: 0.6 });
+      const blushMat = new THREE.MeshBasicMaterial({ color: 0xf4b5b8, transparent: true, opacity: 0.75, side: THREE.DoubleSide });
 
+      // Cloud-like woolly body
       const woolBody = new THREE.Group();
       [
         { x: 0, y: 0.16, z: 0, r: 0.16 },
         { x: 0.09, y: 0.18, z: 0.05, r: 0.13 },
         { x: -0.09, y: 0.18, z: -0.05, r: 0.13 },
         { x: 0.06, y: 0.14, z: -0.08, r: 0.12 },
-        { x: -0.06, y: 0.14, z: 0.08, r: 0.12 }
+        { x: -0.06, y: 0.14, z: 0.08, r: 0.12 },
+        { x: 0, y: 0.22, z: 0, r: 0.11 }
       ].forEach(w => {
         const m = new THREE.Mesh(new THREE.DodecahedronGeometry(w.r, 1), woolMat);
         m.position.set(w.x, w.y, w.z);
@@ -336,6 +342,7 @@ export class Scene3D {
       });
       petGroup.add(woolBody);
 
+      // Head Group
       const headGroup = new THREE.Group();
       headGroup.position.set(0.18, 0.22, 0);
 
@@ -343,9 +350,41 @@ export class Scene3D {
       head.castShadow = true;
       headGroup.add(head);
 
+      // Fluffy Forehead Wool Bangs (萌萌劉海)
+      const woolTuft = new THREE.Mesh(new THREE.DodecahedronGeometry(0.062, 1), woolMat);
+      woolTuft.position.set(-0.01, 0.075, 0);
+      headGroup.add(woolTuft);
+
+      // Cute Bead Eyes with White Catchlights
+      for (let i = 0; i < 2; i++) {
+        const eyeZ = i === 0 ? 0.062 : -0.062;
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 6), eyeMat);
+        eye.position.set(0.065, 0.015, eyeZ);
+        headGroup.add(eye);
+
+        const gleam = new THREE.Mesh(new THREE.SphereGeometry(0.0055, 4, 4), gleamMat);
+        gleam.position.set(0.076, 0.022, eyeZ + (i === 0 ? 0.004 : -0.004));
+        headGroup.add(gleam);
+      }
+
+      // Cute Soft-Pink Nose
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.018, 5, 5), noseMat);
+      nose.scale.set(1.2, 0.8, 1);
+      nose.position.set(0.092, -0.015, 0);
+      headGroup.add(nose);
+
+      // Rosy Blush Cheeks
+      for (let i = 0; i < 2; i++) {
+        const blush = new THREE.Mesh(new THREE.CircleGeometry(0.02, 6), blushMat);
+        blush.rotation.y = i === 0 ? Math.PI / 3 : -Math.PI / 3;
+        blush.position.set(0.045, -0.02, i === 0 ? 0.082 : -0.082);
+        headGroup.add(blush);
+      }
+
+      // Droopy Soft Ears with Pinkish Inner Ear
       for (let i = 0; i < 2; i++) {
         const ear = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.08, 4), faceMat);
-        ear.position.set(-0.02, -0.01, i === 0 ? 0.09 : -0.09);
+        ear.position.set(-0.02, -0.01, i === 0 ? 0.095 : -0.095);
         ear.rotation.x = i === 0 ? 1.2 : -1.2;
         headGroup.add(ear);
       }
@@ -353,7 +392,14 @@ export class Scene3D {
       petGroup.userData.headGroup = headGroup;
       petGroup.userData.baseHeadY = 0.22;
 
-      const legGeom = new THREE.CylinderGeometry(0.024, 0.024, 0.11);
+      // Woolly Tail Puff
+      const tailPuff = new THREE.Mesh(new THREE.DodecahedronGeometry(0.055, 1), woolMat);
+      tailPuff.position.set(-0.16, 0.17, 0);
+      petGroup.add(tailPuff);
+      petGroup.userData.tail = tailPuff;
+
+      // 4 Legs with cute dark hooves
+      const legGeom = new THREE.CylinderGeometry(0.022, 0.024, 0.11);
       [{ x: 0.08, z: 0.07 }, { x: 0.08, z: -0.07 }, { x: -0.08, z: 0.07 }, { x: -0.08, z: -0.07 }].forEach(lo => {
         const leg = new THREE.Mesh(legGeom, darkMat);
         leg.position.set(lo.x, 0.055, lo.z);
@@ -362,42 +408,97 @@ export class Scene3D {
 
     } else if (species === 'fox') {
       const furMat = new THREE.MeshStandardMaterial({ color: 0xd9753b, roughness: 0.8, flatShading: true });
-      const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf5eedc, roughness: 0.8, flatShading: true });
-      const darkMat = new THREE.MeshStandardMaterial({ color: 0x2b221c, roughness: 0.9 });
+      const whiteMat = new THREE.MeshStandardMaterial({ color: 0xfcfaf4, roughness: 0.8, flatShading: true });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x221a15, roughness: 0.9 });
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1f1610 });
+      const gleamMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
-      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.2, 5, 6), furMat);
+      // Slender Body
+      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.22, 5, 6), furMat);
       body.rotation.z = Math.PI / 2;
       body.position.y = 0.14;
       body.castShadow = true;
       petGroup.add(body);
 
+      // White Chest Bib
+      const bib = new THREE.Mesh(new THREE.SphereGeometry(0.09, 5, 5), whiteMat);
+      bib.position.set(0.07, 0.14, 0);
+      bib.scale.set(0.9, 1.1, 0.9);
+      petGroup.add(bib);
+
+      // Head Group
       const headGroup = new THREE.Group();
       headGroup.position.set(0.16, 0.24, 0);
 
       const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.11, 0), furMat);
       headGroup.add(head);
 
-      const snout = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.08, 4), whiteMat);
+      // Tapered White Snout & Black Nose Pearl
+      const snout = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.09, 4), whiteMat);
       snout.rotation.z = -Math.PI / 2;
       snout.position.set(0.1, -0.02, 0);
       headGroup.add(snout);
 
+      const noseTip = new THREE.Mesh(new THREE.SphereGeometry(0.016, 5, 5), darkMat);
+      noseTip.position.set(0.145, -0.02, 0);
+      headGroup.add(noseTip);
+
+      // Expressive Almond Eyes with Celestial Highlights
+      for (let i = 0; i < 2; i++) {
+        const eyeZ = i === 0 ? 0.052 : -0.052;
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 6), eyeMat);
+        eye.scale.set(1.3, 0.8, 0.8);
+        eye.rotation.y = i === 0 ? 0.2 : -0.2;
+        eye.position.set(0.065, 0.025, eyeZ);
+        headGroup.add(eye);
+
+        const gleam = new THREE.Mesh(new THREE.SphereGeometry(0.0055, 4, 4), gleamMat);
+        gleam.position.set(0.076, 0.032, eyeZ + (i === 0 ? 0.004 : -0.004));
+        headGroup.add(gleam);
+      }
+
+      // Fluffy White Cheek Tufts
+      for (let i = 0; i < 2; i++) {
+        const cheek = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.07, 4), whiteMat);
+        cheek.rotation.z = Math.PI / 3;
+        cheek.rotation.x = i === 0 ? 0.8 : -0.8;
+        cheek.position.set(0.03, -0.03, i === 0 ? 0.085 : -0.085);
+        headGroup.add(cheek);
+      }
+
+      // Two-Tone Triangular Fox Ears with Dark Tips
       for (let i = 0; i < 2; i++) {
         const ear = new THREE.Mesh(new THREE.ConeGeometry(0.038, 0.085, 4), darkMat);
         ear.position.set(0, 0.1, i === 0 ? 0.055 : -0.055);
         ear.rotation.x = i === 0 ? 0.25 : -0.25;
         headGroup.add(ear);
+
+        const innerEar = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.06, 4), whiteMat);
+        innerEar.position.set(0.01, 0.09, i === 0 ? 0.055 : -0.055);
+        innerEar.rotation.x = i === 0 ? 0.25 : -0.25;
+        headGroup.add(innerEar);
       }
       petGroup.add(headGroup);
       petGroup.userData.headGroup = headGroup;
       petGroup.userData.baseHeadY = 0.24;
 
-      const tail = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.24, 5), whiteMat);
-      tail.rotation.z = -1.2;
-      tail.position.set(-0.15, 0.19, 0);
-      petGroup.add(tail);
-      petGroup.userData.tail = tail;
+      // Bushy Tail with Snowy White Tip
+      const tailGroup = new THREE.Group();
+      tailGroup.position.set(-0.15, 0.19, 0);
 
+      const tailBase = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.18, 5), furMat);
+      tailBase.rotation.z = -1.2;
+      tailGroup.add(tailBase);
+
+      const tailTip = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.1, 5), whiteMat);
+      tailTip.rotation.z = -1.2;
+      tailTip.position.set(-0.12, 0.05, 0);
+      tailGroup.add(tailTip);
+
+      petGroup.add(tailGroup);
+      petGroup.userData.tail = tailGroup;
+
+      // 4 Legs with Dark Socks
       const legGeom = new THREE.CylinderGeometry(0.022, 0.022, 0.11);
       [{ x: 0.09, z: 0.07 }, { x: 0.09, z: -0.07 }, { x: -0.09, z: 0.07 }, { x: -0.09, z: -0.07 }].forEach(lo => {
         const leg = new THREE.Mesh(legGeom, darkMat);
@@ -406,35 +507,83 @@ export class Scene3D {
       });
 
     } else if (species === 'shiba') {
-      const furMat = new THREE.MeshStandardMaterial({ color: 0xd49b42, roughness: 0.8, flatShading: true });
-      const whiteMat = new THREE.MeshStandardMaterial({ color: 0xfff6ea, roughness: 0.8, flatShading: true });
+      const furMat = new THREE.MeshStandardMaterial({ color: 0xd69940, roughness: 0.8, flatShading: true });
+      const whiteMat = new THREE.MeshStandardMaterial({ color: 0xfff8ee, roughness: 0.8, flatShading: true });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x161311, roughness: 0.4 });
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x181412 });
+      const gleamMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
+      // Chubby Body
       const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.22, 6, 6), furMat);
       body.rotation.z = Math.PI / 2;
       body.position.y = 0.15;
       body.castShadow = true;
       petGroup.add(body);
 
+      // White Chest Bib
+      const bib = new THREE.Mesh(new THREE.SphereGeometry(0.095, 5, 5), whiteMat);
+      bib.position.set(0.08, 0.14, 0);
+      petGroup.add(bib);
+
+      // Head Group
       const headGroup = new THREE.Group();
       headGroup.position.set(0.18, 0.25, 0);
 
       const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.11, 0), furMat);
       headGroup.add(head);
 
+      // Iconic White Eyebrow "Tan" Dots (麻糬眉毛)
+      for (let i = 0; i < 2; i++) {
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.016, 5, 5), whiteMat);
+        dot.position.set(0.065, 0.06, i === 0 ? 0.045 : -0.045);
+        headGroup.add(dot);
+      }
+
+      // Warm Shiny Eyes
+      for (let i = 0; i < 2; i++) {
+        const eyeZ = i === 0 ? 0.05 : -0.05;
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.017, 6, 6), eyeMat);
+        eye.position.set(0.068, 0.02, eyeZ);
+        headGroup.add(eye);
+
+        const gleam = new THREE.Mesh(new THREE.SphereGeometry(0.005, 4, 4), gleamMat);
+        gleam.position.set(0.078, 0.026, eyeZ + (i === 0 ? 0.003 : -0.003));
+        headGroup.add(gleam);
+      }
+
+      // Chubby White Cheeks & Snout
       const snout = new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), whiteMat);
       snout.position.set(0.08, -0.02, 0);
       headGroup.add(snout);
 
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.018, 5, 5), darkMat);
+      nose.position.set(0.12, -0.012, 0);
+      headGroup.add(nose);
+
+      // Perky Ears with Cream Center
+      for (let i = 0; i < 2; i++) {
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.038, 0.075, 4), furMat);
+        ear.position.set(0, 0.1, i === 0 ? 0.055 : -0.055);
+        ear.rotation.x = i === 0 ? 0.2 : -0.2;
+        headGroup.add(ear);
+
+        const earIn = new THREE.Mesh(new THREE.ConeGeometry(0.024, 0.05, 4), whiteMat);
+        earIn.position.set(0.008, 0.09, i === 0 ? 0.055 : -0.055);
+        earIn.rotation.x = i === 0 ? 0.2 : -0.2;
+        headGroup.add(earIn);
+      }
       petGroup.add(headGroup);
       petGroup.userData.headGroup = headGroup;
       petGroup.userData.baseHeadY = 0.25;
 
+      // Curled Donut Tail
       const tail = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.028, 5, 10, Math.PI * 1.4), furMat);
       tail.position.set(-0.16, 0.24, 0);
       tail.rotation.y = Math.PI / 2;
       petGroup.add(tail);
       petGroup.userData.tail = tail;
 
+      // 4 Legs with White Paws
       const legGeom = new THREE.CylinderGeometry(0.024, 0.024, 0.12);
       [{ x: 0.09, z: 0.08 }, { x: 0.09, z: -0.08 }, { x: -0.09, z: 0.08 }, { x: -0.09, z: -0.08 }].forEach(lo => {
         const leg = new THREE.Mesh(legGeom, whiteMat);
@@ -443,75 +592,164 @@ export class Scene3D {
       });
 
     } else if (species === 'cat') {
-      const furMat = new THREE.MeshStandardMaterial({ color: 0x242426, roughness: 0.7, flatShading: true });
-      const eyeMat = new THREE.MeshStandardMaterial({ color: 0x76e3c0, emissive: 0x32a884, emissiveIntensity: 0.6 });
+      const furMat = new THREE.MeshStandardMaterial({ color: 0x202024, roughness: 0.7, flatShading: true });
+      const eyeMat = new THREE.MeshStandardMaterial({
+        color: 0x6ee7b7,
+        emissive: 0x059669,
+        emissiveIntensity: 0.75,
+        roughness: 0.2
+      });
+      const pupilMat = new THREE.MeshBasicMaterial({ color: 0x090d16 });
+      const pinkMat = new THREE.MeshStandardMaterial({ color: 0xf5a5b5, roughness: 0.5 });
+      const whiteMat = new THREE.MeshStandardMaterial({ color: 0xfcfaf4, roughness: 0.8 });
 
+      // Sleek Cat Body
       const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.22, 5, 6), furMat);
       body.rotation.z = Math.PI / 2;
       body.position.y = 0.13;
       body.castShadow = true;
       petGroup.add(body);
 
+      // Head Group
       const headGroup = new THREE.Group();
       headGroup.position.set(0.16, 0.22, 0);
 
       const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.1, 0), furMat);
       headGroup.add(head);
 
+      // Luminescent Jade Almond Eyes with Slit Pupil
       for (let i = 0; i < 2; i++) {
-        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.07, 4), furMat);
+        const eyeZ = i === 0 ? 0.048 : -0.048;
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.019, 6, 6), eyeMat);
+        eye.scale.set(1.2, 0.85, 0.8);
+        eye.position.set(0.065, 0.015, eyeZ);
+        headGroup.add(eye);
+
+        const pupil = new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.0035, 0.024, 4), pupilMat);
+        pupil.position.set(0.076, 0.015, eyeZ);
+        headGroup.add(pupil);
+      }
+
+      // Tiny Pink Nose
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.014, 5, 5), pinkMat);
+      nose.position.set(0.09, -0.012, 0);
+      headGroup.add(nose);
+
+      // Pointed Ears with Pink Inner Ear Flaps
+      for (let i = 0; i < 2; i++) {
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.075, 4), furMat);
         ear.position.set(0, 0.09, i === 0 ? 0.05 : -0.05);
         headGroup.add(ear);
 
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.018, 4, 4), eyeMat);
-        eye.position.set(0.07, 0.01, i === 0 ? 0.04 : -0.04);
-        headGroup.add(eye);
+        const inner = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.05, 4), pinkMat);
+        inner.position.set(0.008, 0.085, i === 0 ? 0.05 : -0.05);
+        headGroup.add(inner);
       }
       petGroup.add(headGroup);
       petGroup.userData.headGroup = headGroup;
       petGroup.userData.baseHeadY = 0.22;
 
-      const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.015, 0.26), furMat);
+      // Elegant S-Curved Tail
+      const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.015, 0.28), furMat);
       tail.position.set(-0.16, 0.24, 0);
       tail.rotation.z = -0.7;
       petGroup.add(tail);
       petGroup.userData.tail = tail;
 
+      // 4 Sleek Paws with White Sock Tips on Front
       const legGeom = new THREE.CylinderGeometry(0.02, 0.02, 0.11);
-      [{ x: 0.08, z: 0.06 }, { x: 0.08, z: -0.06 }, { x: -0.08, z: 0.06 }, { x: -0.08, z: -0.06 }].forEach(lo => {
-        const leg = new THREE.Mesh(legGeom, furMat);
+      [{ x: 0.08, z: 0.06 }, { x: 0.08, z: -0.06 }, { x: -0.08, z: 0.06 }, { x: -0.08, z: -0.06 }].forEach((lo, idx) => {
+        const leg = new THREE.Mesh(legGeom, idx < 2 ? whiteMat : furMat);
         leg.position.set(lo.x, 0.055, lo.z);
         petGroup.add(leg);
       });
 
     } else {
-      const furMat = new THREE.MeshStandardMaterial({ color: 0xaa6e40, roughness: 0.85, flatShading: true });
-      const antlerMat = new THREE.MeshStandardMaterial({ color: 0xd6c2a8, roughness: 0.8 });
+      const furMat = new THREE.MeshStandardMaterial({ color: 0xa66a3d, roughness: 0.85, flatShading: true });
+      const whiteMat = new THREE.MeshStandardMaterial({ color: 0xfcf9ee, roughness: 0.8 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x14100c, roughness: 0.4 });
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x14100c });
+      const gleamMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const antlerMat = new THREE.MeshStandardMaterial({ color: 0xd8cbb8, roughness: 0.75 });
 
+      // Slender Deer Body
       const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.24, 5, 6), furMat);
       body.rotation.z = Math.PI / 2;
       body.position.y = 0.19;
       body.castShadow = true;
       petGroup.add(body);
 
+      // Dappled White Spots on Flank
+      [-0.04, 0.02, -0.02, 0.04].forEach((sx, idx) => {
+        const spot = new THREE.Mesh(new THREE.CircleGeometry(0.015, 6), whiteMat);
+        spot.rotation.x = -Math.PI / 2;
+        spot.position.set(sx, 0.285, idx % 2 === 0 ? 0.06 : -0.06);
+        petGroup.add(spot);
+      });
+
+      // Head Group
       const headGroup = new THREE.Group();
       headGroup.position.set(0.18, 0.32, 0);
 
       const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.1, 0), furMat);
       headGroup.add(head);
 
+      // Big Gentle Doe Eyes with Double Catchlights
       for (let i = 0; i < 2; i++) {
-        const antler = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.12), antlerMat);
-        antler.position.set(-0.02, 0.1, i === 0 ? 0.05 : -0.05);
+        const eyeZ = i === 0 ? 0.055 : -0.055;
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), eyeMat);
+        eye.position.set(0.06, 0.02, eyeZ);
+        headGroup.add(eye);
+
+        const gleam1 = new THREE.Mesh(new THREE.SphereGeometry(0.006, 4, 4), gleamMat);
+        gleam1.position.set(0.072, 0.028, eyeZ + (i === 0 ? 0.003 : -0.003));
+        headGroup.add(gleam1);
+      }
+
+      // Pale Muzzle with Black Nose
+      const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.042, 5, 5), whiteMat);
+      muzzle.position.set(0.08, -0.02, 0);
+      headGroup.add(muzzle);
+
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.016, 5, 5), darkMat);
+      nose.position.set(0.116, -0.016, 0);
+      headGroup.add(nose);
+
+      // Slender Alert Ears
+      for (let i = 0; i < 2; i++) {
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.09, 4), furMat);
+        ear.position.set(-0.02, 0.07, i === 0 ? 0.075 : -0.075);
+        ear.rotation.x = i === 0 ? 0.8 : -0.8;
+        headGroup.add(ear);
+      }
+
+      // Delicate Branching Antlers
+      for (let i = 0; i < 2; i++) {
+        const antlerZ = i === 0 ? 0.045 : -0.045;
+        const antler = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.13), antlerMat);
+        antler.position.set(-0.02, 0.1, antlerZ);
         antler.rotation.z = -0.2;
         antler.rotation.x = i === 0 ? 0.3 : -0.3;
         headGroup.add(antler);
+
+        const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.06), antlerMat);
+        branch.position.set(0.01, 0.12, antlerZ + (i === 0 ? 0.02 : -0.02));
+        branch.rotation.z = 0.5;
+        headGroup.add(branch);
       }
       petGroup.add(headGroup);
       petGroup.userData.headGroup = headGroup;
       petGroup.userData.baseHeadY = 0.32;
 
-      const legGeom = new THREE.CylinderGeometry(0.018, 0.015, 0.19);
+      // Fawn Tail with White Underside
+      const tail = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.09, 4), whiteMat);
+      tail.position.set(-0.16, 0.22, 0);
+      tail.rotation.z = -0.9;
+      petGroup.add(tail);
+      petGroup.userData.tail = tail;
+
+      // Graceful Slender Legs
+      const legGeom = new THREE.CylinderGeometry(0.017, 0.015, 0.19);
       [{ x: 0.09, z: 0.07 }, { x: 0.09, z: -0.07 }, { x: -0.09, z: 0.07 }, { x: -0.09, z: -0.07 }].forEach(lo => {
         const leg = new THREE.Mesh(legGeom, furMat);
         leg.position.set(lo.x, 0.095, lo.z);
@@ -527,23 +765,7 @@ export class Scene3D {
     hitSphere.position.set(0.08, 0.2, 0);
     petGroup.add(hitSphere);
 
-    // Glowing ground aura ring during holding/feeding
-    const auraRing = new THREE.Mesh(
-      new THREE.RingGeometry(0.24, 0.34, 28),
-      new THREE.MeshBasicMaterial({
-        color: 0xffd285,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0,
-        blending: THREE.AdditiveBlending
-      })
-    );
-    auraRing.rotateX(-Math.PI / 2);
-    auraRing.position.set(0.1, 0.015, 0);
-    petGroup.add(auraRing);
-    petGroup.userData.feedAura = auraRing;
-
-    // Cute low-poly feeding dish (wooden bowl + food)
+    // Cute low-poly feeding dish (wooden bowl + food) - NO ugly ground ring!
     const dishGroup = new THREE.Group();
     const dishMat = new THREE.MeshStandardMaterial({ color: 0x6e4a30, roughness: 0.8 });
     const foodMat = new THREE.MeshStandardMaterial({ color: 0xffbb44, roughness: 0.5, emissive: 0xff9900, emissiveIntensity: 0.2 });
@@ -557,14 +779,15 @@ export class Scene3D {
     petGroup.add(dishGroup);
     petGroup.userData.feedDish = dishGroup;
 
-    // Initial position
+    // Initial safe meadow positions (away from water)
     const waypoints = [
-      { x: -0.6, z: 0.2 },
-      { x: 0.5, z: -0.1 },
-      { x: -0.2, z: 1.1 },
-      { x: 1.1, z: 0.8 },
-      { x: -1.3, z: 0.1 },
-      { x: 0.8, z: -0.8 }
+      { x: -0.7, z: 0.3 },
+      { x: 0.5, z: 0.3 },
+      { x: -0.2, z: 1.2 },
+      { x: 1.2, z: 0.8 },
+      { x: -1.2, z: 0.2 },
+      { x: 0.8, z: -0.2 },
+      { x: 0.2, z: 0.7 }
     ];
     const initialPos = waypoints[initialIndex % waypoints.length];
 
@@ -756,12 +979,9 @@ export class Scene3D {
     if (petMesh.userData.feedDish) {
       petMesh.userData.feedDish.visible = true;
     }
-    if (petMesh.userData.feedAura) {
-      petMesh.userData.feedAura.material.opacity = 0;
-    }
 
-    // Spawn 6 floating heart particles above the pet with nice rose colors
-    for (let i = 0; i < 6; i++) {
+    // Spawn 5 floating heart particles above the pet with soft pastel colors
+    for (let i = 0; i < 5; i++) {
       const heartMat = new THREE.MeshBasicMaterial({
         color: i % 2 === 0 ? 0xff8fa3 : 0xffd285,
         side: THREE.DoubleSide
@@ -781,13 +1001,10 @@ export class Scene3D {
     const s = petMesh.userData.aiState;
     const petData = petMesh.userData.petData;
 
+    // Gentle contented nod (不再大動作高空旋轉跳躍)
     if (s) {
-      s.state = 'jumping';
-      s.jumpProgress = 0;
-    }
-
-    if (petMesh.userData.feedAura) {
-      petMesh.userData.feedAura.material.opacity = 0;
+      s.state = 'happy_nod';
+      s.happyTimer = 1.3;
     }
 
     if (petMesh.userData.headGroup) {
@@ -795,8 +1012,8 @@ export class Scene3D {
       petMesh.userData.headGroup.rotation.z = 0;
     }
 
-    // Spawn rich floating heart particles & sparkles
-    for (let i = 0; i < 6; i++) {
+    // Spawn floating heart particles & sparkles
+    for (let i = 0; i < 5; i++) {
       const heartMat = new THREE.MeshBasicMaterial({
         color: i % 2 === 0 ? 0xff8fa3 : 0xffd285,
         side: THREE.DoubleSide
@@ -952,9 +1169,6 @@ export class Scene3D {
           if (hitObj.userData.feedDish) {
             hitObj.userData.feedDish.visible = true;
           }
-          if (hitObj.userData.feedAura) {
-            hitObj.userData.feedAura.material.opacity = 0.85;
-          }
 
           if (this.onPetHoldStart) this.onPetHoldStart(petData);
 
@@ -983,9 +1197,6 @@ export class Scene3D {
           if (this.activePetPressed) {
             if (this.activePetPressed.userData.feedDish) {
               this.activePetPressed.userData.feedDish.visible = false;
-            }
-            if (this.activePetPressed.userData.feedAura) {
-              this.activePetPressed.userData.feedAura.material.opacity = 0;
             }
             if (this.activePetPressed.userData.headGroup) {
               this.activePetPressed.userData.headGroup.position.y = this.activePetPressed.userData.baseHeadY || 0.22;
@@ -1019,27 +1230,19 @@ export class Scene3D {
         // If it was a short tap (< 480ms)
         if (elapsed < 480 && this.dragDistance < 12 && this.isPetHolding) {
           this.isPetHolding = false;
-          // Hide dish & aura immediately
+          // Hide dish immediately
           if (petObj.userData.feedDish) petObj.userData.feedDish.visible = false;
-          if (petObj.userData.feedAura) petObj.userData.feedAura.material.opacity = 0;
 
-          // Head resets
-          if (petObj.userData.headGroup) {
-            petObj.userData.headGroup.position.y = petObj.userData.baseHeadY || 0.22;
-            petObj.userData.headGroup.rotation.z = 0;
-          }
-
-          // Play greeting bounce
+          // Gentle curious head raise (抬個頭看著你) - peaceful and subtle!
           if (petObj.userData.aiState) {
-            petObj.userData.aiState.state = 'jumping';
-            petObj.userData.aiState.jumpProgress = 0;
+            petObj.userData.aiState.state = 'looking_up';
+            petObj.userData.aiState.lookTimer = 1.8;
           }
           if (this.onPetTap) this.onPetTap(petObj.userData.petData);
           return;
         }
 
         this.isPetHolding = false;
-        if (petObj.userData.feedAura) petObj.userData.feedAura.material.opacity = 0;
         return;
       }
 
@@ -1215,12 +1418,6 @@ export class Scene3D {
       if (petMesh.userData.tail) {
         petMesh.userData.tail.rotation.y = Math.sin(time * 16) * 0.55;
       }
-      if (petMesh.userData.feedAura) {
-        petMesh.userData.feedAura.rotation.z += delta * 4;
-        petMesh.userData.feedAura.material.opacity = Math.min(0.9, petMesh.userData.feedAura.material.opacity + delta * 3);
-        const pulse = 1.0 + Math.sin(time * 10) * 0.08;
-        petMesh.userData.feedAura.scale.set(pulse, pulse, pulse);
-      }
       return;
     }
 
@@ -1233,34 +1430,66 @@ export class Scene3D {
         petMesh.userData.headGroup.rotation.z = -0.32 + Math.sin(time * 12) * 0.08;
       }
       if (petMesh.userData.tail) {
-        petMesh.userData.tail.rotation.y = Math.sin(time * 14) * 0.5; // excited tail wag!
+        petMesh.userData.tail.rotation.y = Math.sin(time * 14) * 0.5;
       }
       if (s.eatTimer <= 0) {
         if (petMesh.userData.feedDish) petMesh.userData.feedDish.visible = false;
-        if (petMesh.userData.headGroup) {
-          petMesh.userData.headGroup.position.y = petMesh.userData.baseHeadY || 0.22;
-          petMesh.userData.headGroup.rotation.z = 0;
-        }
-        s.state = 'jumping';
-        s.jumpProgress = 0;
+        s.state = 'happy_nod';
+        s.happyTimer = 1.3;
       }
       return;
     }
 
-    // Jumping animation state
-    if (s.state === 'jumping') {
-      s.jumpProgress += delta * 3.8;
-      const jumpHeight = Math.sin(s.jumpProgress * Math.PI) * 0.38;
-      petMesh.position.y = 0.28 + Math.max(0, jumpHeight);
-      petMesh.rotation.y += delta * 7;
+    // Gentle looking up affectionately (短按：抬個頭看著你，溫和優雅)
+    if (s.state === 'looking_up') {
+      s.lookTimer -= delta;
+      petMesh.position.y = 0.28; // stays calmly on ground
+
       if (petMesh.userData.headGroup) {
-        petMesh.userData.headGroup.position.y = petMesh.userData.baseHeadY || 0.22;
-        petMesh.userData.headGroup.rotation.z = 0;
+        const baseY = petMesh.userData.baseHeadY || 0.22;
+        petMesh.userData.headGroup.position.y = baseY + 0.035;
+        petMesh.userData.headGroup.rotation.z = 0.26; // gentle tilt up
+        petMesh.userData.headGroup.rotation.x = -0.12; // curious head tilt
       }
-      if (s.jumpProgress >= 1) {
+      if (petMesh.userData.tail) {
+        petMesh.userData.tail.rotation.y = Math.sin(time * 8) * 0.28; // calm gentle tail wag
+      }
+
+      if (s.lookTimer <= 0) {
+        if (petMesh.userData.headGroup) {
+          petMesh.userData.headGroup.position.y = petMesh.userData.baseHeadY || 0.22;
+          petMesh.userData.headGroup.rotation.z = 0;
+          petMesh.userData.headGroup.rotation.x = 0;
+        }
         s.state = 'idle';
         s.timer = 2.5;
+      }
+      return;
+    }
+
+    // Happy contented nod after feeding completes (溫柔點頭感謝，不再誇張跳高空)
+    if (s.state === 'happy_nod') {
+      s.happyTimer -= delta;
+      petMesh.position.y = 0.28 + Math.max(0, Math.sin(time * 10) * 0.035);
+
+      if (petMesh.userData.headGroup) {
+        const baseY = petMesh.userData.baseHeadY || 0.22;
+        petMesh.userData.headGroup.position.y = baseY + Math.sin(time * 8) * 0.035;
+        petMesh.userData.headGroup.rotation.z = Math.sin(time * 8) * 0.12;
+      }
+      if (petMesh.userData.tail) {
+        petMesh.userData.tail.rotation.y = Math.sin(time * 12) * 0.45;
+      }
+
+      if (s.happyTimer <= 0) {
+        if (petMesh.userData.headGroup) {
+          petMesh.userData.headGroup.position.y = petMesh.userData.baseHeadY || 0.22;
+          petMesh.userData.headGroup.rotation.z = 0;
+          petMesh.userData.headGroup.rotation.x = 0;
+        }
         petMesh.position.y = 0.28;
+        s.state = 'idle';
+        s.timer = 2.5;
       }
       return;
     }
@@ -1269,19 +1498,20 @@ export class Scene3D {
     if (petMesh.userData.headGroup && petMesh.userData.headGroup.rotation.z !== 0) {
       petMesh.userData.headGroup.position.y = petMesh.userData.baseHeadY || 0.22;
       petMesh.userData.headGroup.rotation.z = 0;
+      petMesh.userData.headGroup.rotation.x = 0;
     }
 
     s.timer -= delta;
     if (s.timer <= 0) {
       if (s.state === 'idle' || s.state === 'sitting') {
         const waypoints = [
-          { x: -0.6, z: 0.2 },
-          { x: 0.5, z: -0.1 },
-          { x: -0.2, z: 1.1 },
-          { x: 1.1, z: 0.8 },
-          { x: -1.3, z: 0.1 },
-          { x: 0.8, z: -0.8 },
-          { x: -0.1, z: -0.3 }
+          { x: -0.7, z: 0.3 },
+          { x: 0.5, z: 0.3 },
+          { x: -0.2, z: 1.2 },
+          { x: 1.2, z: 0.8 },
+          { x: -1.2, z: 0.2 },
+          { x: 0.8, z: -0.2 },
+          { x: 0.2, z: 0.7 }
         ];
         const next = waypoints[(Math.floor(Math.random() * waypoints.length) + idx) % waypoints.length];
         s.targetX = next.x;

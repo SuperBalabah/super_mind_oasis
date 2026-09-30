@@ -49,7 +49,12 @@ async function run() {
     const code = await res.text();
     assert(code.includes('eating_hold'), 'scene3d.js supports immediate eating_hold state on pointerdown');
     assert(code.includes('feedDish.visible = true'), 'scene3d.js makes feedDish visible immediately on press');
-    assert(code.includes('feedAura'), 'scene3d.js includes glowing feedAura');
+    assert(!code.includes('feedAura'), 'scene3d.js has REMOVED the distracting feedAura ground ring');
+    assert(code.includes('looking_up'), 'scene3d.js supports gentle looking_up head raise on tap');
+    assert(code.includes('happy_nod'), 'scene3d.js supports contented happy_nod on feed complete');
+    assert(code.includes('woolTuft') && code.includes('blushMat'), 'scene3d.js includes sheep face details (tuft, blush, eyes)');
+    assert(code.includes('snout') && code.includes('noseTip'), 'scene3d.js includes fox face & nose tip details');
+    assert(code.includes('eyebrowMat') || code.includes('tan'), 'scene3d.js includes Shiba eyebrow dots & muzzle');
     assert(code.includes('hitSphere'), 'scene3d.js includes hitSphere for reliable mobile touch');
     assert(code.includes('completePetFeed'), 'scene3d.js includes completePetFeed');
   } catch (e) {

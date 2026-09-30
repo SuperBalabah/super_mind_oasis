@@ -471,7 +471,7 @@ class App {
   // Pet in-world short-tap greeting (In-game toast feedback, NO invasive modal popup!)
   onPetTapped(petData) {
     sound.playPetChirp();
-    this.showToast(`🐾【${petData.name}】開心地蹭了蹭你（長按常按即可餵食陪伴）`);
+    this.showToast(`🐾【${petData.name}】好奇地抬起頭看著你（長按可餵食陪伴）`);
   }
 
   // Pet in-world long-press feeding (Direct in-game fulfillment)
