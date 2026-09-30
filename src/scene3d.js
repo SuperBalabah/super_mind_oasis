@@ -1,13 +1,14 @@
 // Enhanced 3D Scene Pipeline for Super Mind Oasis
-// Rich Aesthetic Diorama: Floating Island, Campfire, Tent, Multi-Pet System & Collision-Free Grove
+// Direct 3D Pet Interaction: Tap to Greet, Hold to Feed & Nurture Habits
 import * as THREE from 'three';
 import { TREE_TYPES } from './storage.js';
 
 export class Scene3D {
-  constructor(canvasContainer, onTreeSelect, onPetSelect, onWaterTap) {
+  constructor(canvasContainer, onTreeSelect, onPetTap, onPetFeed, onWaterTap) {
     this.container = canvasContainer;
     this.onTreeSelect = onTreeSelect;
-    this.onPetSelect = onPetSelect;
+    this.onPetTap = onPetTap;
+    this.onPetFeed = onPetFeed;
     this.onWaterTap = onWaterTap;
 
     this.scene = null;
@@ -21,6 +22,7 @@ export class Scene3D {
     this.rainGroup = null;
     this.campfireGroup = null;
     this.petsGroup = null;
+    this.heartsGroup = null;
 
     // Lights
     this.dirLight = null;
@@ -34,6 +36,13 @@ export class Scene3D {
     this.waterMesh = null;
     this.waterRipples = [];
     this.petInstances = [];
+    this.floatingHearts = [];
+
+    // Pointer & Hold interaction on pets
+    this.activePetPressed = null;
+    this.petHoldTimer = null;
+    this.petHoldStartTime = 0;
+    this.isPetHolding = false;
 
     // Camera orbit controls
     this.isDragging = false;
@@ -76,10 +85,12 @@ export class Scene3D {
     this.rainGroup = new THREE.Group();
     this.campfireGroup = new THREE.Group();
     this.petsGroup = new THREE.Group();
+    this.heartsGroup = new THREE.Group();
 
     this.islandGroup.add(this.treesGroup);
     this.islandGroup.add(this.campfireGroup);
     this.islandGroup.add(this.petsGroup);
+    this.islandGroup.add(this.heartsGroup);
 
     this.scene.add(this.islandGroup);
     this.scene.add(this.particlesGroup);
@@ -114,7 +125,6 @@ export class Scene3D {
     this.dirLight.shadow.bias = -0.001;
     this.scene.add(this.dirLight);
 
-    // Warm campfire light
     this.fireLight = new THREE.PointLight(0xff7722, 1.8, 4.5);
     this.fireLight.position.set(-1.25, 0.65, 0.7);
     this.fireLight.castShadow = true;
@@ -137,18 +147,12 @@ export class Scene3D {
     }
     geom.computeVertexNormals();
 
-    const topMat = new THREE.MeshStandardMaterial({
-      color: 0x3d7048,
-      roughness: 0.85,
-      metalness: 0.05,
-      flatShading: true
-    });
+    const topMat = new THREE.MeshStandardMaterial({ color: 0x3d7048, roughness: 0.85, flatShading: true });
     const topMesh = new THREE.Mesh(geom, topMat);
     topMesh.receiveShadow = true;
     topMesh.castShadow = true;
     this.islandGroup.add(topMesh);
 
-    // Island crag base
     const baseGeom = new THREE.ConeGeometry(radius * 0.94, 3.2, 18, 5);
     baseGeom.rotateX(Math.PI);
     const basePos = baseGeom.attributes.position;
@@ -168,7 +172,6 @@ export class Scene3D {
     baseMesh.receiveShadow = true;
     this.islandGroup.add(baseMesh);
 
-    // Decorative boulders placed safely away from trees & tent
     const rockMat = new THREE.MeshStandardMaterial({ color: 0x6e6863, roughness: 0.8, flatShading: true });
     const rocks = [
       { x: -2.3, z: -0.3, s: 0.36 },
@@ -201,7 +204,6 @@ export class Scene3D {
     this.waterMesh.receiveShadow = true;
     this.islandGroup.add(this.waterMesh);
 
-    // Lily pads
     const padMat = new THREE.MeshStandardMaterial({ color: 0x3b854e, roughness: 0.6, side: THREE.DoubleSide });
     const padLocs = [
       { x: -0.65, z: -0.75, s: 0.18, r: 0.4 },
@@ -216,7 +218,6 @@ export class Scene3D {
       this.islandGroup.add(pad);
     });
 
-    // Wooden deck
     const deckMat = new THREE.MeshStandardMaterial({ color: 0x6e4a30, roughness: 0.75, flatShading: true });
     for (let i = 0; i < 3; i++) {
       const plank = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.06, 0.18), deckMat);
@@ -226,7 +227,6 @@ export class Scene3D {
     }
   }
 
-  // Tent placed at designated Camp Zone (-2.0, 1.25)
   buildCozyTent() {
     const tentGroup = new THREE.Group();
     tentGroup.position.set(-2.0, 0.28, 1.25);
@@ -256,7 +256,6 @@ export class Scene3D {
     this.islandGroup.add(tentGroup);
   }
 
-  // Campfire placed at (-1.25, 0.7)
   buildCampfire() {
     this.campfireGroup.position.set(-1.25, 0.28, 0.7);
 
@@ -309,7 +308,7 @@ export class Scene3D {
     this.campfireGroup.add(this.fireEmbers);
   }
 
-  // --- MULTI-PET PROCEDURAL CREATION (5 SPECIES: SHEEP, FOX, SHIBA, CAT, DEER) ---
+  // --- PROCEDURAL PET CREATION WITH INTERACTIVE FEEDING DISH ---
   createPetMesh(petData, initialIndex = 0) {
     const petGroup = new THREE.Group();
     petGroup.name = petData.id;
@@ -318,21 +317,18 @@ export class Scene3D {
     const species = petData.species || 'sheep';
 
     if (species === 'sheep') {
-      // 1. FLUFFY WHITE CLOUD SHEEP (綿羊)
       const woolMat = new THREE.MeshStandardMaterial({ color: 0xf6f3eb, roughness: 0.95, flatShading: true });
       const faceMat = new THREE.MeshStandardMaterial({ color: 0xd9cca8, roughness: 0.8, flatShading: true });
       const darkMat = new THREE.MeshStandardMaterial({ color: 0x3d352e, roughness: 0.9 });
 
-      // Fluffy cloud body (cluster of soft spheres)
       const woolBody = new THREE.Group();
-      const woolOffsets = [
+      [
         { x: 0, y: 0.16, z: 0, r: 0.16 },
         { x: 0.09, y: 0.18, z: 0.05, r: 0.13 },
         { x: -0.09, y: 0.18, z: -0.05, r: 0.13 },
         { x: 0.06, y: 0.14, z: -0.08, r: 0.12 },
         { x: -0.06, y: 0.14, z: 0.08, r: 0.12 }
-      ];
-      woolOffsets.forEach(w => {
+      ].forEach(w => {
         const m = new THREE.Mesh(new THREE.DodecahedronGeometry(w.r, 1), woolMat);
         m.position.set(w.x, w.y, w.z);
         m.castShadow = true;
@@ -340,34 +336,31 @@ export class Scene3D {
       });
       petGroup.add(woolBody);
 
-      // Cute head
-      const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.1, 0), faceMat);
-      head.position.set(0.18, 0.22, 0);
-      head.castShadow = true;
-      petGroup.add(head);
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0.18, 0.22, 0);
 
-      // Floppy ears
+      const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.1, 0), faceMat);
+      head.castShadow = true;
+      headGroup.add(head);
+
       for (let i = 0; i < 2; i++) {
         const ear = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.08, 4), faceMat);
-        ear.position.set(0.16, 0.21, i === 0 ? 0.09 : -0.09);
+        ear.position.set(-0.02, -0.01, i === 0 ? 0.09 : -0.09);
         ear.rotation.x = i === 0 ? 1.2 : -1.2;
-        petGroup.add(ear);
+        headGroup.add(ear);
       }
+      petGroup.add(headGroup);
+      petGroup.userData.headGroup = headGroup;
+      petGroup.userData.baseHeadY = 0.22;
 
-      // 4 Stubby little legs
       const legGeom = new THREE.CylinderGeometry(0.024, 0.024, 0.11);
-      const legOffsets = [
-        { x: 0.08, z: 0.07 }, { x: 0.08, z: -0.07 },
-        { x: -0.08, z: 0.07 }, { x: -0.08, z: -0.07 }
-      ];
-      legOffsets.forEach(lo => {
+      [{ x: 0.08, z: 0.07 }, { x: 0.08, z: -0.07 }, { x: -0.08, z: 0.07 }, { x: -0.08, z: -0.07 }].forEach(lo => {
         const leg = new THREE.Mesh(legGeom, darkMat);
         leg.position.set(lo.x, 0.055, lo.z);
         petGroup.add(leg);
       });
 
     } else if (species === 'fox') {
-      // 2. SPIRIT FOX (小靈狐)
       const furMat = new THREE.MeshStandardMaterial({ color: 0xd9753b, roughness: 0.8, flatShading: true });
       const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf5eedc, roughness: 0.8, flatShading: true });
       const darkMat = new THREE.MeshStandardMaterial({ color: 0x2b221c, roughness: 0.9 });
@@ -378,21 +371,26 @@ export class Scene3D {
       body.castShadow = true;
       petGroup.add(body);
 
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0.16, 0.24, 0);
+
       const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.11, 0), furMat);
-      head.position.set(0.16, 0.24, 0);
-      petGroup.add(head);
+      headGroup.add(head);
 
       const snout = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.08, 4), whiteMat);
       snout.rotation.z = -Math.PI / 2;
-      snout.position.set(0.26, 0.22, 0);
-      petGroup.add(snout);
+      snout.position.set(0.1, -0.02, 0);
+      headGroup.add(snout);
 
       for (let i = 0; i < 2; i++) {
         const ear = new THREE.Mesh(new THREE.ConeGeometry(0.038, 0.085, 4), darkMat);
-        ear.position.set(0.16, 0.34, i === 0 ? 0.055 : -0.055);
+        ear.position.set(0, 0.1, i === 0 ? 0.055 : -0.055);
         ear.rotation.x = i === 0 ? 0.25 : -0.25;
-        petGroup.add(ear);
+        headGroup.add(ear);
       }
+      petGroup.add(headGroup);
+      petGroup.userData.headGroup = headGroup;
+      petGroup.userData.baseHeadY = 0.24;
 
       const tail = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.24, 5), whiteMat);
       tail.rotation.z = -1.2;
@@ -408,10 +406,8 @@ export class Scene3D {
       });
 
     } else if (species === 'shiba') {
-      // 3. SHIBA INU (柴犬)
       const furMat = new THREE.MeshStandardMaterial({ color: 0xd49b42, roughness: 0.8, flatShading: true });
       const whiteMat = new THREE.MeshStandardMaterial({ color: 0xfff6ea, roughness: 0.8, flatShading: true });
-      const darkMat = new THREE.MeshStandardMaterial({ color: 0x221a14, roughness: 0.9 });
 
       const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.22, 6, 6), furMat);
       body.rotation.z = Math.PI / 2;
@@ -419,15 +415,20 @@ export class Scene3D {
       body.castShadow = true;
       petGroup.add(body);
 
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0.18, 0.25, 0);
+
       const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.11, 0), furMat);
-      head.position.set(0.18, 0.25, 0);
-      petGroup.add(head);
+      headGroup.add(head);
 
       const snout = new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), whiteMat);
-      snout.position.set(0.26, 0.23, 0);
-      petGroup.add(snout);
+      snout.position.set(0.08, -0.02, 0);
+      headGroup.add(snout);
 
-      // Cinnamon roll curled tail
+      petGroup.add(headGroup);
+      petGroup.userData.headGroup = headGroup;
+      petGroup.userData.baseHeadY = 0.25;
+
       const tail = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.028, 5, 10, Math.PI * 1.4), furMat);
       tail.position.set(-0.16, 0.24, 0);
       tail.rotation.y = Math.PI / 2;
@@ -442,7 +443,6 @@ export class Scene3D {
       });
 
     } else if (species === 'cat') {
-      // 4. MYSTIC CAT (靈貓)
       const furMat = new THREE.MeshStandardMaterial({ color: 0x242426, roughness: 0.7, flatShading: true });
       const eyeMat = new THREE.MeshStandardMaterial({ color: 0x76e3c0, emissive: 0x32a884, emissiveIntensity: 0.6 });
 
@@ -452,21 +452,25 @@ export class Scene3D {
       body.castShadow = true;
       petGroup.add(body);
 
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0.16, 0.22, 0);
+
       const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.1, 0), furMat);
-      head.position.set(0.16, 0.22, 0);
-      petGroup.add(head);
+      headGroup.add(head);
 
       for (let i = 0; i < 2; i++) {
         const ear = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.07, 4), furMat);
-        ear.position.set(0.16, 0.31, i === 0 ? 0.05 : -0.05);
-        petGroup.add(ear);
+        ear.position.set(0, 0.09, i === 0 ? 0.05 : -0.05);
+        headGroup.add(ear);
 
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.018, 4, 4), eyeMat);
-        eye.position.set(0.23, 0.23, i === 0 ? 0.04 : -0.04);
-        petGroup.add(eye);
+        eye.position.set(0.07, 0.01, i === 0 ? 0.04 : -0.04);
+        headGroup.add(eye);
       }
+      petGroup.add(headGroup);
+      petGroup.userData.headGroup = headGroup;
+      petGroup.userData.baseHeadY = 0.22;
 
-      // Elegant curving tail
       const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.015, 0.26), furMat);
       tail.position.set(-0.16, 0.24, 0);
       tail.rotation.z = -0.7;
@@ -481,9 +485,7 @@ export class Scene3D {
       });
 
     } else {
-      // 5. FOREST FAWN DEER (森林小鹿)
       const furMat = new THREE.MeshStandardMaterial({ color: 0xaa6e40, roughness: 0.85, flatShading: true });
-      const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf8f2e4, roughness: 0.85 });
       const antlerMat = new THREE.MeshStandardMaterial({ color: 0xd6c2a8, roughness: 0.8 });
 
       const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.24, 5, 6), furMat);
@@ -492,20 +494,23 @@ export class Scene3D {
       body.castShadow = true;
       petGroup.add(body);
 
-      const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.1, 0), furMat);
-      head.position.set(0.18, 0.32, 0);
-      petGroup.add(head);
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0.18, 0.32, 0);
 
-      // Tiny velvet antlers
+      const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.1, 0), furMat);
+      headGroup.add(head);
+
       for (let i = 0; i < 2; i++) {
         const antler = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.12), antlerMat);
-        antler.position.set(0.16, 0.42, i === 0 ? 0.05 : -0.05);
+        antler.position.set(-0.02, 0.1, i === 0 ? 0.05 : -0.05);
         antler.rotation.z = -0.2;
         antler.rotation.x = i === 0 ? 0.3 : -0.3;
-        petGroup.add(antler);
+        headGroup.add(antler);
       }
+      petGroup.add(headGroup);
+      petGroup.userData.headGroup = headGroup;
+      petGroup.userData.baseHeadY = 0.32;
 
-      // Slender tall legs
       const legGeom = new THREE.CylinderGeometry(0.018, 0.015, 0.19);
       [{ x: 0.09, z: 0.07 }, { x: 0.09, z: -0.07 }, { x: -0.09, z: 0.07 }, { x: -0.09, z: -0.07 }].forEach(lo => {
         const leg = new THREE.Mesh(legGeom, furMat);
@@ -514,7 +519,45 @@ export class Scene3D {
       });
     }
 
-    // Waypoint patrol state
+    // Touch collision hit sphere for 100% reliable mobile touch
+    const hitSphere = new THREE.Mesh(
+      new THREE.SphereGeometry(0.38, 8, 8),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    hitSphere.position.set(0.08, 0.2, 0);
+    petGroup.add(hitSphere);
+
+    // Glowing ground aura ring during holding/feeding
+    const auraRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.24, 0.34, 28),
+      new THREE.MeshBasicMaterial({
+        color: 0xffd285,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending
+      })
+    );
+    auraRing.rotateX(-Math.PI / 2);
+    auraRing.position.set(0.1, 0.015, 0);
+    petGroup.add(auraRing);
+    petGroup.userData.feedAura = auraRing;
+
+    // Cute low-poly feeding dish (wooden bowl + food)
+    const dishGroup = new THREE.Group();
+    const dishMat = new THREE.MeshStandardMaterial({ color: 0x6e4a30, roughness: 0.8 });
+    const foodMat = new THREE.MeshStandardMaterial({ color: 0xffbb44, roughness: 0.5, emissive: 0xff9900, emissiveIntensity: 0.2 });
+    const dish = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.07, 0.04, 8), dishMat);
+    const food = new THREE.Mesh(new THREE.DodecahedronGeometry(0.04, 0), foodMat);
+    food.position.y = 0.02;
+    dishGroup.add(dish);
+    dishGroup.add(food);
+    dishGroup.position.set(0.29, 0.02, 0);
+    dishGroup.visible = false;
+    petGroup.add(dishGroup);
+    petGroup.userData.feedDish = dishGroup;
+
+    // Initial position
     const waypoints = [
       { x: -0.6, z: 0.2 },
       { x: 0.5, z: -0.1 },
@@ -532,8 +575,9 @@ export class Scene3D {
       targetX: initialPos.x,
       targetZ: initialPos.z,
       rotation: 0,
-      state: 'idle',
+      state: 'idle', // 'idle' | 'walking' | 'sitting' | 'focused' | 'eating' | 'jumping'
       timer: 2.0 + initialIndex * 1.2,
+      eatTimer: 0,
       jumpProgress: 0,
       speed: 0.3 + (initialIndex % 3) * 0.05
     };
@@ -554,7 +598,7 @@ export class Scene3D {
     });
   }
 
-  // --- PROCEDURAL MIND TREES (4 STAGES) ---
+  // --- PROCEDURAL MIND TREES ---
   createTreeMesh(treeData) {
     const group = new THREE.Group();
     group.name = treeData.id;
@@ -701,11 +745,81 @@ export class Scene3D {
     this.waterRipples.push({ mesh: ripple, scale: 1, opacity: 0.9 });
   }
 
-  triggerPetJump(petId) {
-    const petMesh = this.petInstances.find(p => p.userData.petId === petId);
-    if (petMesh && petMesh.userData.aiState) {
-      petMesh.userData.aiState.state = 'jumping';
-      petMesh.userData.aiState.jumpProgress = 0;
+  // --- FLOATING HEARTS & FEEDING REACTION ---
+  feedPet(petMesh) {
+    const s = petMesh.userData.aiState;
+    if (!s) return;
+
+    s.state = 'eating';
+    s.eatTimer = 2.4;
+
+    if (petMesh.userData.feedDish) {
+      petMesh.userData.feedDish.visible = true;
+    }
+    if (petMesh.userData.feedAura) {
+      petMesh.userData.feedAura.material.opacity = 0;
+    }
+
+    // Spawn 6 floating heart particles above the pet with nice rose colors
+    for (let i = 0; i < 6; i++) {
+      const heartMat = new THREE.MeshBasicMaterial({
+        color: i % 2 === 0 ? 0xff8fa3 : 0xffd285,
+        side: THREE.DoubleSide
+      });
+      const hMesh = new THREE.Mesh(new THREE.CircleGeometry(0.065, 8), heartMat);
+      hMesh.position.set(
+        petMesh.position.x + (Math.random() - 0.5) * 0.35,
+        petMesh.position.y + 0.35 + i * 0.1,
+        petMesh.position.z + (Math.random() - 0.5) * 0.35
+      );
+      this.heartsGroup.add(hMesh);
+      this.floatingHearts.push({ mesh: hMesh, life: 1.8 });
+    }
+  }
+
+  completePetFeed(petMesh) {
+    const s = petMesh.userData.aiState;
+    const petData = petMesh.userData.petData;
+
+    if (s) {
+      s.state = 'jumping';
+      s.jumpProgress = 0;
+    }
+
+    if (petMesh.userData.feedAura) {
+      petMesh.userData.feedAura.material.opacity = 0;
+    }
+
+    if (petMesh.userData.headGroup) {
+      petMesh.userData.headGroup.position.y = petMesh.userData.baseHeadY || 0.22;
+      petMesh.userData.headGroup.rotation.z = 0;
+    }
+
+    // Spawn rich floating heart particles & sparkles
+    for (let i = 0; i < 6; i++) {
+      const heartMat = new THREE.MeshBasicMaterial({
+        color: i % 2 === 0 ? 0xff8fa3 : 0xffd285,
+        side: THREE.DoubleSide
+      });
+      const hMesh = new THREE.Mesh(new THREE.CircleGeometry(0.065, 8), heartMat);
+      hMesh.position.set(
+        petMesh.position.x + (Math.random() - 0.5) * 0.35,
+        petMesh.position.y + 0.35 + i * 0.1,
+        petMesh.position.z + (Math.random() - 0.5) * 0.35
+      );
+      this.heartsGroup.add(hMesh);
+      this.floatingHearts.push({ mesh: hMesh, life: 1.8 });
+    }
+
+    // Keep dish visible for 1.4s then hide
+    setTimeout(() => {
+      if (petMesh.userData.feedDish && s.state !== 'eating_hold') {
+        petMesh.userData.feedDish.visible = false;
+      }
+    }, 1400);
+
+    if (this.onPetFeed) {
+      this.onPetFeed(petData);
     }
   }
 
@@ -795,6 +909,7 @@ export class Scene3D {
     this.rainGroup.visible = false;
   }
 
+  // --- INTERACTION & GESTURE SYSTEM (IN-WORLD PET TAP & HOLD) ---
   setupInteraction() {
     const el = this.renderer.domElement;
     const raycaster = new THREE.Raycaster();
@@ -810,6 +925,48 @@ export class Scene3D {
       this.isDragging = true;
       this.previousMousePosition = { x: e.clientX, y: e.clientY };
       this.dragDistance = 0;
+
+      // Check if pet was clicked on pointer down to immediately freeze & feed!
+      const rect = el.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, this.camera);
+
+      const petHits = raycaster.intersectObjects(this.petsGroup.children, true);
+      if (petHits.length > 0) {
+        let hitObj = petHits[0].object;
+        while (hitObj.parent && hitObj.parent !== this.petsGroup) {
+          hitObj = hitObj.parent;
+        }
+        if (hitObj.userData && hitObj.userData.petId) {
+          this.activePetPressed = hitObj;
+          this.petHoldStartTime = Date.now();
+          this.isPetHolding = true;
+
+          const petData = hitObj.userData.petData;
+
+          // FREEZE & EATING POSE IMMEDIATELY:
+          if (hitObj.userData.aiState) {
+            hitObj.userData.aiState.state = 'eating_hold';
+          }
+          if (hitObj.userData.feedDish) {
+            hitObj.userData.feedDish.visible = true;
+          }
+          if (hitObj.userData.feedAura) {
+            hitObj.userData.feedAura.material.opacity = 0.85;
+          }
+
+          if (this.onPetHoldStart) this.onPetHoldStart(petData);
+
+          // Long-press timer (480ms)
+          this.petHoldTimer = setTimeout(() => {
+            if (this.isPetHolding && this.activePetPressed === hitObj) {
+              this.isPetHolding = false;
+              this.completePetFeed(hitObj);
+            }
+          }, 480);
+        }
+      }
     });
 
     window.addEventListener('pointermove', (e) => {
@@ -817,6 +974,31 @@ export class Scene3D {
       const deltaX = e.clientX - this.previousMousePosition.x;
       const deltaY = e.clientY - this.previousMousePosition.y;
       this.dragDistance += Math.abs(deltaX) + Math.abs(deltaY);
+
+      if (this.dragDistance > 12) {
+        // Dragging camera cancels pet hold
+        if (this.isPetHolding) {
+          this.isPetHolding = false;
+          clearTimeout(this.petHoldTimer);
+          if (this.activePetPressed) {
+            if (this.activePetPressed.userData.feedDish) {
+              this.activePetPressed.userData.feedDish.visible = false;
+            }
+            if (this.activePetPressed.userData.feedAura) {
+              this.activePetPressed.userData.feedAura.material.opacity = 0;
+            }
+            if (this.activePetPressed.userData.headGroup) {
+              this.activePetPressed.userData.headGroup.position.y = this.activePetPressed.userData.baseHeadY || 0.22;
+              this.activePetPressed.userData.headGroup.rotation.z = 0;
+            }
+            if (this.activePetPressed.userData.aiState) {
+              this.activePetPressed.userData.aiState.state = 'idle';
+              this.activePetPressed.userData.aiState.timer = 2.0;
+            }
+            this.activePetPressed = null;
+          }
+        }
+      }
 
       this.targetRotationY += deltaX * 0.007;
       this.targetRotationX = Math.max(0.12, Math.min(0.82, this.targetRotationX + deltaY * 0.005));
@@ -827,28 +1009,47 @@ export class Scene3D {
       if (!this.isDragging) return;
       this.isDragging = false;
 
+      // Handle Pet Pointer Up
+      if (this.activePetPressed) {
+        clearTimeout(this.petHoldTimer);
+        const elapsed = Date.now() - this.petHoldStartTime;
+        const petObj = this.activePetPressed;
+        this.activePetPressed = null;
+
+        // If it was a short tap (< 480ms)
+        if (elapsed < 480 && this.dragDistance < 12 && this.isPetHolding) {
+          this.isPetHolding = false;
+          // Hide dish & aura immediately
+          if (petObj.userData.feedDish) petObj.userData.feedDish.visible = false;
+          if (petObj.userData.feedAura) petObj.userData.feedAura.material.opacity = 0;
+
+          // Head resets
+          if (petObj.userData.headGroup) {
+            petObj.userData.headGroup.position.y = petObj.userData.baseHeadY || 0.22;
+            petObj.userData.headGroup.rotation.z = 0;
+          }
+
+          // Play greeting bounce
+          if (petObj.userData.aiState) {
+            petObj.userData.aiState.state = 'jumping';
+            petObj.userData.aiState.jumpProgress = 0;
+          }
+          if (this.onPetTap) this.onPetTap(petObj.userData.petData);
+          return;
+        }
+
+        this.isPetHolding = false;
+        if (petObj.userData.feedAura) petObj.userData.feedAura.material.opacity = 0;
+        return;
+      }
+
+      // Check Tree or Pond clicks
       if (this.dragDistance < 10) {
         const rect = el.getBoundingClientRect();
         mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
         raycaster.setFromCamera(mouse, this.camera);
 
-        // 1. Check Pet selection
-        const petHits = raycaster.intersectObjects(this.petsGroup.children, true);
-        if (petHits.length > 0) {
-          let hitObj = petHits[0].object;
-          while (hitObj.parent && hitObj.parent !== this.petsGroup) {
-            hitObj = hitObj.parent;
-          }
-          if (hitObj.userData && hitObj.userData.petId) {
-            this.triggerPetJump(hitObj.userData.petId);
-            if (this.onPetSelect) this.onPetSelect(hitObj.userData.petData);
-            return;
-          }
-        }
-
-        // 2. Check Tree selection
         const treeHits = raycaster.intersectObjects(this.treesGroup.children, true);
         if (treeHits.length > 0) {
           let hitObj = treeHits[0].object;
@@ -862,7 +1063,6 @@ export class Scene3D {
           }
         }
 
-        // 3. Check Water Pond
         if (this.waterMesh) {
           const waterHits = raycaster.intersectObject(this.waterMesh);
           if (waterHits.length > 0) {
@@ -934,6 +1134,18 @@ export class Scene3D {
       pos.needsUpdate = true;
     }
 
+    // Update floating heart particles
+    for (let i = this.floatingHearts.length - 1; i >= 0; i--) {
+      const h = this.floatingHearts[i];
+      h.life -= delta;
+      h.mesh.position.y += delta * 0.4;
+      h.mesh.scale.setScalar(Math.max(0, h.life));
+      if (h.life <= 0) {
+        this.heartsGroup.remove(h.mesh);
+        this.floatingHearts.splice(i, 1);
+      }
+    }
+
     // Update all roaming pets
     this.petInstances.forEach((petMesh, idx) => {
       this.updateSinglePet(petMesh, delta, time, idx);
@@ -993,17 +1205,70 @@ export class Scene3D {
     const s = petMesh.userData.aiState;
     if (!s) return;
 
+    // Direct in-world holding feeding state
+    if (s.state === 'eating_hold') {
+      if (petMesh.userData.headGroup) {
+        const baseY = petMesh.userData.baseHeadY || 0.22;
+        petMesh.userData.headGroup.position.y = baseY - 0.07 + Math.sin(time * 14) * 0.025;
+        petMesh.userData.headGroup.rotation.z = -0.32 + Math.sin(time * 14) * 0.08;
+      }
+      if (petMesh.userData.tail) {
+        petMesh.userData.tail.rotation.y = Math.sin(time * 16) * 0.55;
+      }
+      if (petMesh.userData.feedAura) {
+        petMesh.userData.feedAura.rotation.z += delta * 4;
+        petMesh.userData.feedAura.material.opacity = Math.min(0.9, petMesh.userData.feedAura.material.opacity + delta * 3);
+        const pulse = 1.0 + Math.sin(time * 10) * 0.08;
+        petMesh.userData.feedAura.scale.set(pulse, pulse, pulse);
+      }
+      return;
+    }
+
+    // Eating / Feeding animation state
+    if (s.state === 'eating') {
+      s.eatTimer -= delta;
+      if (petMesh.userData.headGroup) {
+        const baseY = petMesh.userData.baseHeadY || 0.22;
+        petMesh.userData.headGroup.position.y = baseY - 0.07 + Math.sin(time * 12) * 0.025;
+        petMesh.userData.headGroup.rotation.z = -0.32 + Math.sin(time * 12) * 0.08;
+      }
+      if (petMesh.userData.tail) {
+        petMesh.userData.tail.rotation.y = Math.sin(time * 14) * 0.5; // excited tail wag!
+      }
+      if (s.eatTimer <= 0) {
+        if (petMesh.userData.feedDish) petMesh.userData.feedDish.visible = false;
+        if (petMesh.userData.headGroup) {
+          petMesh.userData.headGroup.position.y = petMesh.userData.baseHeadY || 0.22;
+          petMesh.userData.headGroup.rotation.z = 0;
+        }
+        s.state = 'jumping';
+        s.jumpProgress = 0;
+      }
+      return;
+    }
+
+    // Jumping animation state
     if (s.state === 'jumping') {
-      s.jumpProgress += delta * 4;
-      const jumpHeight = Math.sin(s.jumpProgress * Math.PI) * 0.35;
+      s.jumpProgress += delta * 3.8;
+      const jumpHeight = Math.sin(s.jumpProgress * Math.PI) * 0.38;
       petMesh.position.y = 0.28 + Math.max(0, jumpHeight);
-      petMesh.rotation.y += delta * 8;
+      petMesh.rotation.y += delta * 7;
+      if (petMesh.userData.headGroup) {
+        petMesh.userData.headGroup.position.y = petMesh.userData.baseHeadY || 0.22;
+        petMesh.userData.headGroup.rotation.z = 0;
+      }
       if (s.jumpProgress >= 1) {
         s.state = 'idle';
-        s.timer = 2.0;
+        s.timer = 2.5;
         petMesh.position.y = 0.28;
       }
       return;
+    }
+
+    // Ensure head is upright during regular wandering
+    if (petMesh.userData.headGroup && petMesh.userData.headGroup.rotation.z !== 0) {
+      petMesh.userData.headGroup.position.y = petMesh.userData.baseHeadY || 0.22;
+      petMesh.userData.headGroup.rotation.z = 0;
     }
 
     s.timer -= delta;

@@ -1,4 +1,4 @@
-// Enhanced Storage & Multi-Pet Habit Engine for Super Mind Oasis
+// Non-anxiety, Organic Habit Care Storage for Super Mind Oasis
 const STORAGE_KEY_TREES = 'super_mind_oasis_trees_v3';
 const STORAGE_KEY_RINGS = 'super_mind_oasis_rings_v3';
 const STORAGE_KEY_SETTINGS = 'super_mind_oasis_settings_v3';
@@ -56,40 +56,34 @@ export const PET_SPECIES = {
     id: 'sheep',
     name: '雲朵綿羊',
     description: '軟綿綿的白雲小羊，性情溫馴，喜歡在草地安靜咀嚼放空。',
-    iconColor: '#f4f0e6',
     defaultHabit: '每日深呼吸靜坐 5 分鐘'
   },
   fox: {
     id: 'fox',
     name: '星光靈狐',
     description: '機敏而靈動的小狐狸，披著夕陽的赤橘毛色，在島上守護你的習慣。',
-    iconColor: '#e0763a',
     defaultHabit: '每日睡前閱讀 15 分鐘'
   },
   shiba: {
     id: 'shiba',
     name: '暖陽柴犬',
-    description: '充滿元氣與陪伴感的忠誠柴犬，總是笑瞇瞇地迎接著你的每一次打卡。',
-    iconColor: '#d69e46',
+    description: '充滿元氣與陪伴感的忠誠柴犬，總是笑瞇瞇地迎接著你的每一次餵食。',
     defaultHabit: '每日晨間慢跑 2 公里'
   },
   cat: {
     id: 'cat',
     name: '玄夜靈貓',
     description: '優雅而深沉的黑貓，帶著一雙清澈琉璃眼，安靜依偎在帳篷與營火旁。',
-    iconColor: '#363438',
     defaultHabit: '每日喝足 2000cc 溫水'
   },
   deer: {
     id: 'deer',
     name: '森林小鹿',
     description: '踏著輕盈步伐的初生林鹿，象徵著輕柔而堅定的持續力量。',
-    iconColor: '#b87c4a',
     defaultHabit: '每日寫下一件感恩小事'
   }
 };
 
-// Safe spots for trees strictly tested to avoid tent (-1.9, 1.2), campfire (-1.1, 0.7), and pond (-0.4, -0.9)
 const SAFE_TREE_SPOTS = [
   { x: 0.25, z: 0.95 },
   { x: 1.55, z: 0.65 },
@@ -110,7 +104,7 @@ const DEFAULT_INITIAL_TREE = {
   status: 'growing',
   nurtureCount: 3,
   lastNurturedAt: Date.now() - 1000 * 60 * 60 * 8,
-  position: SAFE_TREE_SPOTS[0], // (0.25, 0.95) - Beautiful open meadow, zero clipping!
+  position: SAFE_TREE_SPOTS[0],
   notes: [
     {
       id: 'n1',
@@ -150,22 +144,23 @@ const DEFAULT_INITIAL_RING = {
   ]
 };
 
+// No rigid streaks! Pure accumulation of love and habit practice
 const DEFAULT_INITIAL_PETS = [
   {
     id: 'pet_init_01',
     species: 'sheep',
     name: '白雲綿羊',
     habitTitle: '每日深呼吸靜坐 5 分鐘',
-    streak: 4,
-    lastCheckinDate: new Date(Date.now() - 86400000).toDateString()
+    careCount: 5,
+    lastNurturedAt: Date.now() - 3600000
   },
   {
     id: 'pet_init_02',
     species: 'fox',
     name: '小靈狐',
     habitTitle: '每日睡前閱讀 15 分鐘',
-    streak: 6,
-    lastCheckinDate: new Date().toDateString()
+    careCount: 8,
+    lastNurturedAt: Date.now() - 7200000
   }
 ];
 
@@ -285,7 +280,7 @@ export const Storage = {
     } catch (e) {}
   },
 
-  // --- MULTI-PET HABIT MANAGEMENT ---
+  // --- ORGANIC ZERO-PRESSURE HABIT CARE ---
   getPets() {
     try {
       const data = localStorage.getItem(STORAGE_KEY_PETS);
@@ -293,7 +288,24 @@ export const Storage = {
         this.savePets(DEFAULT_INITIAL_PETS);
         return DEFAULT_INITIAL_PETS;
       }
-      return JSON.parse(data);
+      const list = JSON.parse(data);
+      let migrated = false;
+      list.forEach(p => {
+        if (p.careCount === undefined) {
+          p.careCount = p.streak || 1;
+          migrated = true;
+        }
+        if ('streak' in p) {
+          delete p.streak;
+          migrated = true;
+        }
+        if ('lastCheckinDate' in p) {
+          delete p.lastCheckinDate;
+          migrated = true;
+        }
+      });
+      if (migrated) this.savePets(list);
+      return list;
     } catch (e) {
       return DEFAULT_INITIAL_PETS;
     }
@@ -313,29 +325,23 @@ export const Storage = {
       species,
       name: (name && name.trim()) || sp.name,
       habitTitle: (habitTitle && habitTitle.trim()) || sp.defaultHabit,
-      streak: 0,
-      lastCheckinDate: null
+      careCount: 1,
+      lastNurturedAt: Date.now()
     };
     pets.push(newPet);
     this.savePets(pets);
     return newPet;
   },
 
-  checkinPet(petId) {
+  nurturePet(petId) {
     const pets = this.getPets();
     const pet = pets.find(p => p.id === petId);
     if (!pet) return null;
 
-    const today = new Date().toDateString();
-    const alreadyDone = pet.lastCheckinDate === today;
-
-    if (!alreadyDone) {
-      pet.streak = (pet.streak || 0) + 1;
-      pet.lastCheckinDate = today;
-      this.savePets(pets);
-      return { success: true, streak: pet.streak, firstTimeToday: true };
-    }
-    return { success: true, streak: pet.streak, firstTimeToday: false };
+    pet.careCount = (pet.careCount || 0) + 1;
+    pet.lastNurturedAt = Date.now();
+    this.savePets(pets);
+    return pet;
   },
 
   updatePetHabit(petId, newName, newHabit) {
@@ -373,7 +379,6 @@ export const Storage = {
     } catch (e) {}
   },
 
-  // Safe placement logic guaranteed to not overlap tent, fire, water, or other trees
   findFreeSpot(existingTrees) {
     for (const spot of SAFE_TREE_SPOTS) {
       const occupied = existingTrees.some(t => {
@@ -384,13 +389,11 @@ export const Storage = {
       });
       if (!occupied) return spot;
     }
-    // Fallback: search safely in the eastern quadrant (away from tent)
-    const angle = (Math.random() * 0.8 + 0.1) * Math.PI; // eastern quadrant
+    const angle = (Math.random() * 0.8 + 0.1) * Math.PI;
     const dist = 1.3 + Math.random() * 0.8;
     return { x: Math.cos(angle) * dist + 0.6, z: Math.sin(angle) * dist };
   },
 
-  // --- DATA BACKUP & RESTORE (100% RELIABILITY) ---
   exportAllData() {
     const payload = {
       version: 3,
@@ -412,7 +415,6 @@ export const Storage = {
       if (data.settings) this.saveSettings(data.settings);
       return true;
     } catch (e) {
-      console.error('Import failed:', e);
       return false;
     }
   }

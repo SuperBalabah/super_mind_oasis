@@ -1,6 +1,4 @@
 // Enhanced Web Audio API Soundscape & Procedural Ambient Music Engine
-// 100% Offline, Pure Synthesized - No external files, peaceful & hypnotic
-
 class SoundEngine {
   constructor() {
     this.ctx = null;
@@ -10,27 +8,22 @@ class SoundEngine {
     this.isMuted = false;
     this.isMusicEnabled = true;
 
-    // Environmental nodes
     this.windNode = null;
     this.rainNode = null;
     this.campfireNode = null;
 
-    // Ambient music scheduler
     this.isAudioStarted = false;
     this.musicInterval = null;
     this.currentChordIndex = 0;
     this.droneNodes = [];
 
-    // Chords progression for infinite relaxing ambient drone (Warm ethereal frequencies)
-    // Fmaj9 -> Cmaj7 -> Gsus4 -> Am7 (432Hz tuning aesthetic)
     this.chords = [
-      [172.8, 216.0, 259.2, 324.0], // F, A, C, E
-      [129.6, 162.0, 194.4, 243.0], // C, E, G, B
-      [194.4, 216.0, 291.6, 388.8], // G, A, D, G
-      [108.0, 162.0, 216.0, 259.2]  // A, E, A, C
+      [172.8, 216.0, 259.2, 324.0], // Fmaj9
+      [129.6, 162.0, 194.4, 243.0], // Cmaj7
+      [194.4, 216.0, 291.6, 388.8], // Gsus4
+      [108.0, 162.0, 216.0, 259.2]  // Am7
     ];
 
-    // Pentatonic scale for random soft celestial piano droplets
     this.scale = [259.2, 291.6, 324.0, 388.8, 432.0, 518.4, 583.2, 648.0];
   }
 
@@ -53,10 +46,7 @@ class SoundEngine {
       this.musicGain.connect(this.masterGain);
 
       this.isAudioStarted = true;
-      console.log('Zen Web Audio & Music Engine Initialized');
-    } catch (e) {
-      console.warn('Web Audio not supported or blocked:', e);
-    }
+    } catch (e) {}
   }
 
   ensureContext() {
@@ -78,21 +68,18 @@ class SoundEngine {
     this.musicGain.gain.setTargetAtTime(enabled ? 0.3 : 0.0, this.ctx.currentTime, 0.5);
   }
 
-  // --- 1. PROCEDURAL PEACEFUL AMBIENT MUSIC ---
   startAmbientMusic() {
     if (!this.ctx || this.musicInterval) return;
     this.playNextChord();
     
-    // Switch chord every 12 seconds with long crossfades
     this.musicInterval = setInterval(() => {
       if (this.isMusicEnabled && !this.isMuted) {
         this.playNextChord();
       }
     }, 12000);
 
-    // Occasional gentle celestial piano drops (every 3 to 7 seconds)
     const scheduleNextBell = () => {
-      const delay = 3000 + Math.random() * 4500;
+      const delay = 3200 + Math.random() * 4500;
       setTimeout(() => {
         if (this.isMusicEnabled && !this.isMuted) {
           this.playCelestialNote();
@@ -109,19 +96,15 @@ class SoundEngine {
     const chord = this.chords[this.currentChordIndex];
     this.currentChordIndex = (this.currentChordIndex + 1) % this.chords.length;
 
-    // Fade out previous drone oscillators
     const oldDrones = [...this.droneNodes];
     this.droneNodes = [];
     oldDrones.forEach(d => {
       try {
         d.gain.gain.linearRampToValueAtTime(0.0001, now + 5.0);
-        setTimeout(() => {
-          try { d.osc.stop(); } catch(e){}
-        }, 5500);
+        setTimeout(() => { try { d.osc.stop(); } catch(e){} }, 5500);
       } catch (e) {}
     });
 
-    // Spawn new warm chord layers
     chord.forEach((freq, idx) => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
@@ -130,11 +113,9 @@ class SoundEngine {
       osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
       osc.frequency.setValueAtTime(freq, now);
 
-      // Low pass filter for soft velvet texture
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(380 + idx * 40, now);
 
-      // Warm attack and slow swell
       const targetGain = 0.045 / (idx * 0.3 + 1);
       gain.gain.setValueAtTime(0.0001, now);
       gain.gain.linearRampToValueAtTime(targetGain, now + 4.0);
@@ -160,7 +141,6 @@ class SoundEngine {
     osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, now);
 
-    // Warm, lingering piano-like decay
     gain.gain.setValueAtTime(0.0001, now);
     gain.gain.linearRampToValueAtTime(0.12, now + 0.05);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.8);
@@ -172,17 +152,13 @@ class SoundEngine {
     osc.stop(now + 4.0);
   }
 
-  // --- 2. CAMPFIRE CRACKLE ---
   startCampfireAudio() {
     if (!this.ctx || this.campfireNode) return;
     try {
-      // Warm low-frequency roar
       const bufferSize = this.ctx.sampleRate * 2;
       const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
       const output = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        output[i] = (Math.random() * 2 - 1) * 0.08;
-      }
+      for (let i = 0; i < bufferSize; i++) output[i] = (Math.random() * 2 - 1) * 0.08;
 
       const noise = this.ctx.createBufferSource();
       noise.buffer = noiseBuffer;
@@ -202,7 +178,6 @@ class SoundEngine {
       noise.start();
       this.campfireNode = { noise, gain };
 
-      // Periodic random wood crackle pops
       const cracklePop = () => {
         if (!this.isMuted && this.ctx) {
           const now = this.ctx.currentTime;
@@ -220,12 +195,9 @@ class SoundEngine {
         setTimeout(cracklePop, 800 + Math.random() * 2200);
       };
       cracklePop();
-    } catch (e) {
-      console.warn('Campfire audio error:', e);
-    }
+    } catch (e) {}
   }
 
-  // --- 3. SINGING BOWL (空靈頌缽) ---
   playSingingBowl(freq = 288) {
     if (this.isMuted) return;
     this.ensureContext();
@@ -269,7 +241,6 @@ class SoundEngine {
     osc2.stop(now + 3.6);
   }
 
-  // --- 4. WATER DROPLET (水波水滴) ---
   playWaterDrop() {
     if (this.isMuted) return;
     this.ensureContext();
@@ -294,7 +265,6 @@ class SoundEngine {
     osc.stop(now + 0.3);
   }
 
-  // --- 5. PET HAPPY CHIRP (寵物開心叫聲) ---
   playPetChirp() {
     if (this.isMuted) return;
     this.ensureContext();
@@ -305,7 +275,6 @@ class SoundEngine {
     const gain = this.ctx.createGain();
 
     osc.type = 'sine';
-    // Gentle cheerful two-tone purr/chirp
     osc.frequency.setValueAtTime(520, now);
     osc.frequency.linearRampToValueAtTime(740, now + 0.08);
     osc.frequency.linearRampToValueAtTime(920, now + 0.18);
@@ -321,7 +290,38 @@ class SoundEngine {
     osc.stop(now + 0.38);
   }
 
-  // --- 6. GOLDEN INSIGHT SHIMMER (頓悟收穫和弦) ---
+  // Feeding munch / affectionate purr when long-pressing pet
+  playFeedingNibble() {
+    if (this.isMuted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    // 3 rhythmic cute nibble crunch clicks
+    for (let i = 0; i < 3; i++) {
+      const delay = i * 0.14;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(450 + (i % 2) * 80, now + delay);
+      osc.frequency.exponentialRampToValueAtTime(220, now + delay + 0.06);
+
+      gain.gain.setValueAtTime(0.18, now + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.08);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(now + delay);
+      osc.stop(now + delay + 0.09);
+    }
+
+    // Followed by a warm, joyful bell shimmer
+    setTimeout(() => {
+      this.playPetChirp();
+    }, 450);
+  }
+
   playInsightChime() {
     if (this.isMuted) return;
     this.ensureContext();
@@ -350,9 +350,7 @@ class SoundEngine {
     });
   }
 
-  // --- 7. BREEZE & RAIN ---
   startBreezeLoop() {
-    // Soft whispering wind
     if (!this.ctx || this.windNode) return;
     try {
       const bufferSize = this.ctx.sampleRate * 2;

@@ -1,4 +1,4 @@
-// V3 Main Application Controller for Super Mind Oasis
+// V3.2 Main Application Controller for Super Mind Oasis
 import { Scene3D } from './scene3d.js';
 import { Storage, TREE_TYPES, PET_SPECIES } from './storage.js';
 import { sound } from './audio.js';
@@ -11,7 +11,7 @@ class App {
     this.selectedPetSpecies = 'sheep';
     this.settings = Storage.getSettings();
 
-    // Long press nurture state
+    // Long press nurture state on tree card
     this.holdTimer = null;
     this.holdStartTime = 0;
     this.isHolding = false;
@@ -23,6 +23,7 @@ class App {
       btnMusic: document.getElementById('btn-music'),
       btnSound: document.getElementById('btn-sound'),
       hint: document.getElementById('center-hint'),
+      toast: document.getElementById('floating-toast'),
 
       // Navigation
       btnPlantOpen: document.getElementById('btn-plant-open'),
@@ -103,13 +104,28 @@ class App {
     this.scene = new Scene3D(
       this.dom.canvasContainer,
       (treeData) => this.onTreeSelected(treeData),
-      (petData) => this.onPetSelected(petData),
+      (petData) => this.onPetTapped(petData),
+      (petData) => this.onPetFed(petData),
       () => sound.playWaterDrop()
     );
 
-    // Initial load
+    this.scene.onPetHoldStart = (petData) => {
+      sound.playFeedingNibble();
+      this.showToast(`🌿 正在餵食陪伴【${petData.name}】...`, 1600);
+    };
+
     this.scene.updateTrees(Storage.getTrees());
     this.scene.updatePets(Storage.getPets());
+  }
+
+  showToast(msg, duration = 2400) {
+    if (!this.dom.toast) return;
+    this.dom.toast.textContent = msg;
+    this.dom.toast.classList.add('active');
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => {
+      if (this.dom.toast) this.dom.toast.classList.remove('active');
+    }, duration);
   }
 
   setupEventListeners() {
@@ -126,7 +142,7 @@ class App {
     window.addEventListener('pointerdown', unlockAudio);
     window.addEventListener('touchstart', unlockAudio);
 
-    // Ambience Switcher
+    // Ambience
     const ambiences = ['sunset', 'night', 'rain', 'day'];
     this.dom.btnAmbience.addEventListener('click', () => {
       sound.ensureContext();
@@ -137,7 +153,7 @@ class App {
       this.applyAmbience(nextMode);
     });
 
-    // Ambient Music Toggle
+    // Music
     this.dom.btnMusic.addEventListener('click', () => {
       sound.ensureContext();
       this.settings.musicEnabled = !this.settings.musicEnabled;
@@ -146,7 +162,7 @@ class App {
       this.dom.btnMusic.classList.toggle('muted', !this.settings.musicEnabled);
     });
 
-    // Sound FX Toggle
+    // Sound FX
     this.dom.btnSound.addEventListener('click', () => {
       sound.ensureContext();
       this.settings.soundEnabled = !this.settings.soundEnabled;
@@ -156,8 +172,6 @@ class App {
     });
 
     this.dom.cardClose.addEventListener('click', () => this.closeTreeCard());
-
-    // Tap vs Hold on Nurture
     this.setupHoldToNurtureInteraction();
 
     // Harvest Modal
@@ -341,7 +355,6 @@ class App {
     sound.toggleRain(mode === 'rain');
   }
 
-  // --- TREE PICKER WITH MINIATURE ARTWORK PREVIEWS ---
   renderTreePicker() {
     const container = this.dom.treePickerContainer;
     container.innerHTML = '';
@@ -423,32 +436,31 @@ class App {
       return;
     }
 
-    const today = new Date().toDateString();
-
     pets.forEach(pet => {
       const sp = PET_SPECIES[pet.species] || PET_SPECIES.sheep;
-      const isCheckedToday = pet.lastCheckinDate === today;
-
       const card = document.createElement('div');
       card.className = 'pet-card-item';
       card.innerHTML = `
         <div class="pet-card-left">
-          <div class="pet-card-title">${pet.name} (${sp.name})</div>
+          <div class="pet-card-title">${pet.name} · ${sp.name}</div>
           <div class="pet-card-habit">守護習慣：${pet.habitTitle}</div>
+          <div style="font-size:0.7rem; color:rgba(255,255,255,0.4); margin-top:2px;">可在島上長按小動物直接餵食陪伴</div>
         </div>
         <div style="display:flex; align-items:center; gap:12px;">
-          <div class="pet-card-streak">${pet.streak || 0} 天</div>
-          <button class="btn-ghost" style="padding:6px 12px; font-size:0.75rem; border-color:${isCheckedToday ? 'rgba(104,196,138,0.4)' : 'var(--glass-border)'}; color:${isCheckedToday ? '#68c48a' : 'var(--text-primary)'}">
-            ${isCheckedToday ? '已打卡' : '打卡'}
+          <div class="pet-card-streak" title="累計陪伴次數">${pet.careCount || 1} 次陪伴</div>
+          <button class="btn-ghost" style="padding:6px 12px; font-size:0.75rem;">
+            餵食陪伴
           </button>
         </div>
       `;
 
-      const checkinBtn = card.querySelector('button');
-      checkinBtn.addEventListener('click', () => {
-        const res = Storage.checkinPet(pet.id);
-        sound.playPetChirp();
-        this.scene.triggerPetJump(pet.id);
+      const feedBtn = card.querySelector('button');
+      feedBtn.addEventListener('click', () => {
+        Storage.nurturePet(pet.id);
+        sound.playFeedingNibble();
+        const petMesh = this.scene.petInstances.find(p => p.userData.petId === pet.id);
+        if (petMesh) this.scene.feedPet(petMesh);
+        this.showToast(`✨ 陪伴【${pet.name}】完成「${pet.habitTitle}」`);
         this.renderPetsList();
       });
 
@@ -456,10 +468,21 @@ class App {
     });
   }
 
-  onPetSelected(petData) {
+  // Pet in-world short-tap greeting (In-game toast feedback, NO invasive modal popup!)
+  onPetTapped(petData) {
     sound.playPetChirp();
-    if (this.scene) this.scene.triggerPetJump(petData.id);
-    this.openHabitModal();
+    this.showToast(`🐾【${petData.name}】開心地蹭了蹭你（長按常按即可餵食陪伴）`);
+  }
+
+  // Pet in-world long-press feeding (Direct in-game fulfillment)
+  onPetFed(petData) {
+    Storage.nurturePet(petData.id);
+    sound.playFeedingNibble();
+    try {
+      if ('vibrate' in navigator) navigator.vibrate([30, 45, 30]);
+    } catch (e) {}
+    this.showToast(`✨ 已溫暖陪伴【${petData.name}】· 守護「${petData.habitTitle}」`);
+    this.renderPetsList();
   }
 
   openHabitModal() {
@@ -512,7 +535,6 @@ class App {
           `;
         }
 
-        // Render with the actual tree type SVG icon!
         card.innerHTML = `
           <div class="tree-card-top-row">
             <div class="tree-visual-illustration">${typeInfo.svgIcon}</div>
