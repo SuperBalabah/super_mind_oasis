@@ -25,42 +25,67 @@
     <!-- 3D Canvas Viewport -->
     <div id="canvas-container"></div>
 
-    <!-- Top Right Minimal Utilities (No Obtrusive Logo!) -->
+    <!-- Top Right Pure Borderless Utilities (Zero Ugly Frames, Zero Emojis) -->
     <nav class="top-controls">
-      <button id="btn-ambience" class="icon-btn-minimal" title="切換光景氛圍">
-        <span id="ambience-icon">🌅</span>
+      <!-- Ambience: Sun/Moon Horizon SVG -->
+      <button id="btn-ambience" class="icon-btn-pure" title="切換光景氛圍">
+        <svg viewBox="0 0 24 24" id="icon-ambience-svg">
+          <circle cx="12" cy="12" r="5" />
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+        </svg>
       </button>
-      <button id="btn-music" class="icon-btn-minimal" title="平靜背景音樂">
-        <span id="music-icon">🎵</span>
+
+      <!-- Music: Minimalist Note SVG -->
+      <button id="btn-music" class="icon-btn-pure" title="平靜背景音樂">
+        <svg viewBox="0 0 24 24" id="icon-music-svg">
+          <path d="M9 18V5l12-2v13" />
+          <circle cx="6" cy="18" r="3" />
+          <circle cx="18" cy="16" r="3" />
+        </svg>
       </button>
-      <button id="btn-sound" class="icon-btn-minimal" title="音效開關">
-        <span id="sound-icon">🔔</span>
+
+      <!-- Sound: Minimalist Chime SVG -->
+      <button id="btn-sound" class="icon-btn-pure" title="音效開關">
+        <svg viewBox="0 0 24 24" id="icon-sound-svg">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
       </button>
     </nav>
 
-    <!-- Floating Center Instruction Hint -->
+    <!-- Floating Center Hint -->
     <div class="center-hint" id="center-hint">
-      單指旋轉小島 · 點擊樹木傾聽思緒 · 撫摸靈狐習慣
+      單指旋轉小島 · 點擊樹木傾聽思緒 · 陪伴綿羊與靈狐
     </div>
 
-    <!-- Bottom Minimal Floating Island Bar (Diegetic Minimalist Glyphs) -->
+    <!-- Bottom Pure Borderless Nav (Zero Ugly Frames, Zero Text Annotations!) -->
     <footer class="floating-bottom-nav">
-      <!-- Plant Seed -->
-      <button id="btn-plant-open" class="nav-glyph-btn" title="播下新課題">
-        <div class="glyph-circle primary-glow">🌱</div>
-        <span class="glyph-label">播種</span>
+      <!-- Plant Seed: Minimalist Leaf SVG -->
+      <button id="btn-plant-open" class="nav-pure-icon-btn primary" title="播種新課題">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 22v-8M7 10c0-3.5 2.5-6 5-8 2.5 2 5 4.5 5 8a5 5 0 0 1-10 0z" />
+          <path d="M12 14c-2-1.5-4-1.5-6 0" />
+          <path d="M12 12c2-1.5 4-1.5 6 0" />
+        </svg>
       </button>
 
-      <!-- Resilience Archive -->
-      <button id="btn-archive-open" class="nav-glyph-btn" title="年輪之書">
-        <div class="glyph-circle">📖</div>
-        <span class="glyph-label">年輪之書</span>
+      <!-- Resilience Archive: Minimalist Open Journal SVG -->
+      <button id="btn-archive-open" class="nav-pure-icon-btn" title="年輪之書">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          <path d="M8 7h8M8 11h6" />
+        </svg>
       </button>
 
-      <!-- Habit Pet -->
-      <button id="btn-habit-open" class="nav-glyph-btn" title="習慣小靈狐">
-        <div class="glyph-circle">🦊</div>
-        <span class="glyph-label">習慣陪伴</span>
+      <!-- Multi-Pet Habit: Minimalist Paw Silhouette SVG -->
+      <button id="btn-habit-open" class="nav-pure-icon-btn" title="習慣夥伴">
+        <svg viewBox="0 0 24 24">
+          <circle cx="7" cy="8" r="2.2" />
+          <circle cx="17" cy="8" r="2.2" />
+          <circle cx="12" cy="5" r="2.2" />
+          <path d="M12 11c-3.2 0-5.5 2.5-5.5 5.5 0 2 1.5 3.5 5.5 3.5s5.5-1.5 5.5-3.5c0-3-2.3-5.5-5.5-5.5z" />
+        </svg>
       </button>
     </footer>
 
@@ -88,7 +113,9 @@
         <div id="btn-hold-nurture" class="hold-nurture-btn">
           <div id="hold-progress-fill" class="hold-progress-fill"></div>
           <div class="btn-label-row">
-            <span>💧</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+            </svg>
             <span>滋養關照</span>
             <span class="btn-instruction-sub">(短按純關照 · 長按記感悟)</span>
           </div>
@@ -96,13 +123,13 @@
 
         <div class="card-secondary-actions">
           <button id="btn-tree-harvest" class="btn-sub-action">
-            🌟 課題釋懷收穫
+            課題釋懷收穫
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Modal: Plant New Tree -->
+    <!-- Modal: Plant New Tree (With Miniature Tree Illustrations!) -->
     <div id="modal-plant" class="modal-overlay">
       <div class="modal-dialog">
         <h3 class="modal-header-title">播下心靈課題之樹</h3>
@@ -120,22 +147,24 @@
           </div>
 
           <div class="form-field">
-            <label class="field-label">選擇象徵樹種</label>
-            <div class="tree-type-selector" id="tree-picker-container"></div>
+            <label class="field-label">選擇象徵樹種（附樹形示意圖）</label>
+            <div class="tree-type-selector" id="tree-picker-container">
+              <!-- Dynamically populated with miniature tree preview illustrations -->
+            </div>
           </div>
 
           <div class="dialog-buttons">
             <button type="button" class="btn-ghost" id="btn-plant-cancel">暫放</button>
-            <button type="submit" class="btn-amber">安放播種 🌱</button>
+            <button type="submit" class="btn-amber">安放播種</button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Modal: Journal Note (Triggered via Long-Press on Nurture) -->
+    <!-- Modal: Journal Note (Triggered via Long-Press) -->
     <div id="modal-note" class="modal-overlay">
       <div class="modal-dialog">
-        <h3 class="modal-header-title">✍️ 刻下心靈年輪感悟</h3>
+        <h3 class="modal-header-title">刻下心靈年輪感悟</h3>
         <p class="modal-header-desc">長按感應到了你的深層思緒。此刻對這個難題，有了什麼新的體會或微小的進步？</p>
 
         <form id="form-note">
@@ -145,7 +174,7 @@
 
           <div class="dialog-buttons">
             <button type="button" class="btn-ghost" id="btn-note-cancel">取消</button>
-            <button type="submit" class="btn-amber">銘刻年輪 🌿</button>
+            <button type="submit" class="btn-amber">銘刻年輪</button>
           </div>
         </form>
       </div>
@@ -154,7 +183,7 @@
     <!-- Modal: Harvest & Breakthrough Insight -->
     <div id="modal-harvest" class="modal-overlay">
       <div class="modal-dialog">
-        <h3 class="modal-header-title" style="color: var(--accent-gold);">✨ 恭喜翻越這道人生關卡！</h3>
+        <h3 class="modal-header-title" style="color: var(--accent-gold);">恭喜翻越這道人生關卡</h3>
         <p class="modal-header-desc">這棵樹已陪伴你經歷了時間的沉澱。在收穫這枚年輪前，請寫下這段歷程帶給你最珍貴的頓悟。</p>
 
         <form id="form-harvest">
@@ -165,7 +194,7 @@
 
           <div class="dialog-buttons">
             <button type="button" class="btn-ghost" id="btn-harvest-cancel">先等等</button>
-            <button type="submit" class="btn-amber">凝結年輪入庫 🌟</button>
+            <button type="submit" class="btn-amber">凝結年輪入庫</button>
           </div>
         </form>
       </div>
@@ -174,49 +203,58 @@
     <!-- Modal: Visual Tree Gallery & Resilience Archive (年輪之書) -->
     <div id="modal-archive" class="modal-overlay">
       <div class="modal-dialog" style="max-width: 520px;">
-        <h3 class="modal-header-title">📖 年輪之書 · 心靈展館</h3>
+        <h3 class="modal-header-title">年輪之書 · 心靈展館</h3>
         <p class="modal-header-desc">點擊任意樹木可展開完整的「生長心路歷程時間軸」，回顧每一次微小的成長。</p>
 
         <div class="archive-gallery-grid" id="rings-container">
-          <!-- Dynamically populated Visual Tree Cards with Expandable Timelines -->
+          <!-- Dynamically populated with matching tree artwork & expandable journey timeline -->
         </div>
 
-        <div class="dialog-buttons">
+        <div class="backup-restore-row">
+          <button type="button" class="backup-link-btn" id="btn-export-backup">導出資料備份 (.json)</button>
+          <label class="backup-link-btn" for="input-import-backup" style="cursor: pointer;">
+            導入資料備份
+            <input type="file" id="input-import-backup" accept=".json" style="display: none;">
+          </label>
+        </div>
+
+        <div class="dialog-buttons" style="margin-top: 14px;">
           <button type="button" class="btn-amber" id="btn-archive-close" style="width: 100%;">合上典籍</button>
         </div>
       </div>
     </div>
 
-    <!-- Modal: Habit Companion Pet (習慣寵物) -->
+    <!-- Modal: Multi-Pet Habit Management (綿羊、小狐狸、柴犬、靈貓、小鹿) -->
     <div id="modal-habit" class="modal-overlay">
       <div class="modal-dialog">
-        <h3 class="modal-header-title">🦊 習慣守護夥伴</h3>
-        <p class="modal-header-desc">養一隻寵物，就是在養一個好習慣。小狐狸在小島上默默陪伴你的日常堅持。</p>
+        <h3 class="modal-header-title">習慣守護夥伴</h3>
+        <p class="modal-header-desc">養一隻寵物，就是在養一個好習慣。你在島上的每隻寵物都在守護著你的日常堅持。</p>
 
-        <div class="habit-streak-display">
-          <div>
-            <div style="font-size: 0.8rem; color: var(--text-secondary);">守護習慣：</div>
-            <div id="habit-name-display" style="font-size: 1.05rem; font-weight: 600; color: #fff;">每日睡前閱讀 15 分鐘</div>
+        <!-- List of current roaming pets -->
+        <div class="pets-list-container" id="pets-list-container"></div>
+
+        <!-- Adopt a New Pet Form -->
+        <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; margin-top: 10px;">
+          <div class="field-label" style="margin-bottom: 8px;">認養新夥伴（最多可同時養成多個習慣）：</div>
+          <div class="pet-species-picker-grid" id="pet-species-picker">
+            <!-- Dynamically populated: Sheep, Fox, Shiba, Cat, Deer -->
           </div>
-          <div style="text-align: right;">
-            <div style="font-size: 0.72rem; color: var(--text-secondary);">已連續陪伴</div>
-            <div class="habit-streak-days" id="habit-streak-count">3 天</div>
-          </div>
+
+          <form id="form-adopt-pet">
+            <div class="form-field">
+              <input type="text" id="adopt-pet-name" class="field-input" placeholder="夥伴名字（例如：白雲綿羊、小狐...）" maxlength="20" required>
+            </div>
+            <div class="form-field">
+              <input type="text" id="adopt-pet-habit" class="field-input" placeholder="所守護的習慣（例如：每日晨讀、每日喝水...）" maxlength="30" required>
+            </div>
+            <div style="text-align: right;">
+              <button type="submit" class="btn-ghost" style="padding: 8px 16px;">確認認養至小島</button>
+            </div>
+          </form>
         </div>
 
-        <form id="form-habit-edit" style="margin-bottom: 20px;">
-          <div class="form-field">
-            <label class="field-label" for="habit-input">更換想要培養的好習慣：</label>
-            <input type="text" id="habit-input" class="field-input" placeholder="例如：每日晨跑2公里、喝水2000cc..." maxlength="30">
-          </div>
-          <div style="text-align: right;">
-            <button type="submit" class="btn-ghost" style="padding: 6px 14px;">儲存習慣名稱</button>
-          </div>
-        </form>
-
         <div class="dialog-buttons">
-          <button type="button" class="btn-ghost" id="btn-habit-close">關閉</button>
-          <button type="button" class="btn-amber" id="btn-habit-checkin">🐾 今日習慣打卡！</button>
+          <button type="button" class="btn-amber" id="btn-habit-close" style="width: 100%;">回到小島</button>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
-// V2 Main Application Controller for Super Mind Oasis
+// V3 Main Application Controller for Super Mind Oasis
 import { Scene3D } from './scene3d.js';
-import { Storage, TREE_TYPES } from './storage.js';
+import { Storage, TREE_TYPES, PET_SPECIES } from './storage.js';
 import { sound } from './audio.js';
 
 class App {
@@ -8,12 +8,11 @@ class App {
     this.scene = null;
     this.selectedTree = null;
     this.selectedTreeType = 'oak';
+    this.selectedPetSpecies = 'sheep';
     this.settings = Storage.getSettings();
-    this.habit = Storage.getHabit();
 
     // Long press nurture state
     this.holdTimer = null;
-    this.holdProgress = 0;
     this.holdStartTime = 0;
     this.isHolding = false;
 
@@ -21,11 +20,8 @@ class App {
     this.dom = {
       canvasContainer: document.getElementById('canvas-container'),
       btnAmbience: document.getElementById('btn-ambience'),
-      ambienceIcon: document.getElementById('ambience-icon'),
       btnMusic: document.getElementById('btn-music'),
-      musicIcon: document.getElementById('music-icon'),
       btnSound: document.getElementById('btn-sound'),
-      soundIcon: document.getElementById('sound-icon'),
       hint: document.getElementById('center-hint'),
 
       // Navigation
@@ -66,14 +62,17 @@ class App {
       modalArchive: document.getElementById('modal-archive'),
       btnArchiveClose: document.getElementById('btn-archive-close'),
       ringsContainer: document.getElementById('rings-container'),
+      btnExportBackup: document.getElementById('btn-export-backup'),
+      inputImportBackup: document.getElementById('input-import-backup'),
 
+      // Multi-Pet Habit Modal
       modalHabit: document.getElementById('modal-habit'),
       btnHabitClose: document.getElementById('btn-habit-close'),
-      habitNameDisplay: document.getElementById('habit-name-display'),
-      habitStreakCount: document.getElementById('habit-streak-count'),
-      formHabitEdit: document.getElementById('form-habit-edit'),
-      habitInput: document.getElementById('habit-input'),
-      btnHabitCheckin: document.getElementById('btn-habit-checkin')
+      petsListContainer: document.getElementById('pets-list-container'),
+      petSpeciesPicker: document.getElementById('pet-species-picker'),
+      formAdoptPet: document.getElementById('form-adopt-pet'),
+      adoptPetName: document.getElementById('adopt-pet-name'),
+      adoptPetHabit: document.getElementById('adopt-pet-habit')
     };
 
     this.init();
@@ -83,9 +82,9 @@ class App {
     this.registerPWA();
     this.init3DScene();
     this.renderTreePicker();
+    this.renderPetSpeciesPicker();
     this.setupEventListeners();
     this.applySettings();
-    this.updateHabitUI();
 
     setTimeout(() => {
       if (this.dom.hint) this.dom.hint.style.opacity = '0';
@@ -104,16 +103,16 @@ class App {
     this.scene = new Scene3D(
       this.dom.canvasContainer,
       (treeData) => this.onTreeSelected(treeData),
-      () => this.onPetTapped(),
+      (petData) => this.onPetSelected(petData),
       () => sound.playWaterDrop()
     );
 
-    const trees = Storage.getTrees();
-    this.scene.updateTrees(trees);
+    // Initial load
+    this.scene.updateTrees(Storage.getTrees());
+    this.scene.updatePets(Storage.getPets());
   }
 
   setupEventListeners() {
-    // Audio unlock on first gesture
     const unlockAudio = () => {
       sound.ensureContext();
       sound.startBreezeLoop();
@@ -129,7 +128,6 @@ class App {
 
     // Ambience Switcher
     const ambiences = ['sunset', 'night', 'rain', 'day'];
-    const icons = { sunset: '🌅', night: '🌙', rain: '🌧️', day: '☀️' };
     this.dom.btnAmbience.addEventListener('click', () => {
       sound.ensureContext();
       const currentIdx = ambiences.indexOf(this.settings.ambienceMode || 'sunset');
@@ -139,13 +137,13 @@ class App {
       this.applyAmbience(nextMode);
     });
 
-    // Peaceful Music Toggle
+    // Ambient Music Toggle
     this.dom.btnMusic.addEventListener('click', () => {
       sound.ensureContext();
       this.settings.musicEnabled = !this.settings.musicEnabled;
       Storage.saveSettings(this.settings);
       sound.setMusicEnabled(this.settings.musicEnabled);
-      this.dom.musicIcon.textContent = this.settings.musicEnabled ? '🎵' : '🔇';
+      this.dom.btnMusic.classList.toggle('muted', !this.settings.musicEnabled);
     });
 
     // Sound FX Toggle
@@ -154,16 +152,15 @@ class App {
       this.settings.soundEnabled = !this.settings.soundEnabled;
       Storage.saveSettings(this.settings);
       sound.setMuted(!this.settings.soundEnabled);
-      this.dom.soundIcon.textContent = this.settings.soundEnabled ? '🔔' : '🔕';
+      this.dom.btnSound.classList.toggle('muted', !this.settings.soundEnabled);
     });
 
-    // Close Tree Card
     this.dom.cardClose.addEventListener('click', () => this.closeTreeCard());
 
-    // --- USER REQUESTED INNOVATION: TAP = PURE NURTURE, HOLD = JOURNAL NOTE ---
+    // Tap vs Hold on Nurture
     this.setupHoldToNurtureInteraction();
 
-    // Harvest Modal Trigger
+    // Harvest Modal
     this.dom.btnTreeHarvest.addEventListener('click', () => {
       this.dom.harvestInsight.value = '';
       this.openModal(this.dom.modalHarvest);
@@ -233,39 +230,59 @@ class App {
     this.dom.btnArchiveOpen.addEventListener('click', () => this.openArchiveModal());
     this.dom.btnArchiveClose.addEventListener('click', () => this.closeModal(this.dom.modalArchive));
 
-    // Habit Pet Modal
+    // Backup & Restore
+    this.dom.btnExportBackup.addEventListener('click', () => {
+      const json = Storage.exportAllData();
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mind_oasis_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    this.dom.inputImportBackup.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const success = Storage.importData(event.target.result);
+        if (success) {
+          alert('備份還原成功！小島已同步更新。');
+          this.scene.updateTrees(Storage.getTrees());
+          this.scene.updatePets(Storage.getPets());
+          this.openArchiveModal();
+        } else {
+          alert('備份格式不正確，請確認檔案內容。');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // Multi-Pet Modal
     this.dom.btnHabitOpen.addEventListener('click', () => this.openHabitModal());
     this.dom.btnHabitClose.addEventListener('click', () => this.closeModal(this.dom.modalHabit));
 
-    this.dom.formHabitEdit.addEventListener('submit', (e) => {
+    this.dom.formAdoptPet.addEventListener('submit', (e) => {
       e.preventDefault();
-      const newName = this.dom.habitInput.value;
-      if (newName.trim()) {
-        this.habit.name = newName.trim();
-        Storage.saveHabit(this.habit);
-        this.updateHabitUI();
-        sound.playPetChirp();
-      }
-    });
-
-    this.dom.btnHabitCheckin.addEventListener('click', () => {
-      const res = Storage.checkinHabit();
-      this.habit = Storage.getHabit();
-      this.updateHabitUI();
+      const name = this.dom.adoptPetName.value;
+      const habit = this.dom.adoptPetHabit.value;
+      Storage.addPet(this.selectedPetSpecies, name, habit);
       sound.playPetChirp();
-      if (this.scene) this.scene.triggerPetJump();
-      this.dom.btnHabitCheckin.textContent = '🎉 今日已陪伴打卡！';
-      this.dom.btnHabitCheckin.style.opacity = '0.7';
+      this.dom.adoptPetName.value = '';
+      this.dom.adoptPetHabit.value = '';
+      this.scene.updatePets(Storage.getPets());
+      this.renderPetsList();
     });
   }
 
-  // --- TAP VS HOLD GESTURE ENGINE ---
   setupHoldToNurtureInteraction() {
     const btn = this.dom.btnHoldNurture;
     const fill = this.dom.holdProgressFill;
-    const HOLD_DURATION = 480; // 480ms threshold for note recording
+    const HOLD_DURATION = 480;
 
-    const startHold = (e) => {
+    const startHold = () => {
       if (!this.selectedTree) return;
       this.isHolding = true;
       this.holdStartTime = Date.now();
@@ -273,7 +290,6 @@ class App {
       fill.style.width = '100%';
 
       this.holdTimer = setTimeout(() => {
-        // LONG PRESS DETECTED!
         if (this.isHolding) {
           this.isHolding = false;
           fill.style.transition = 'none';
@@ -285,7 +301,7 @@ class App {
       }, HOLD_DURATION);
     };
 
-    const endHold = (e) => {
+    const endHold = () => {
       if (!this.isHolding) return;
       const elapsed = Date.now() - this.holdStartTime;
       this.isHolding = false;
@@ -294,21 +310,17 @@ class App {
       fill.style.transition = 'width 0.15s ease';
       fill.style.width = '0%';
 
-      // SHORT TAP DETECTED (Pure Nurture)!
-      if (elapsed < HOLD_DURATION) {
-        if (this.selectedTree) {
-          const updated = Storage.nurtureTree(this.selectedTree.id, null);
-          sound.playSingingBowl(340);
-          sound.playWaterDrop();
-          if (updated) {
-            this.selectedTree = updated;
-            this.updateTreeCardContent(updated);
-            this.scene.updateTrees(Storage.getTrees());
-          }
-          // Visual feedback pulse
-          btn.style.transform = 'scale(0.96)';
-          setTimeout(() => btn.style.transform = '', 180);
+      if (elapsed < HOLD_DURATION && this.selectedTree) {
+        const updated = Storage.nurtureTree(this.selectedTree.id, null);
+        sound.playSingingBowl(340);
+        sound.playWaterDrop();
+        if (updated) {
+          this.selectedTree = updated;
+          this.updateTreeCardContent(updated);
+          this.scene.updateTrees(Storage.getTrees());
         }
+        btn.style.transform = 'scale(0.96)';
+        setTimeout(() => btn.style.transform = '', 180);
       }
     };
 
@@ -320,17 +332,16 @@ class App {
   applySettings() {
     this.applyAmbience(this.settings.ambienceMode || 'sunset');
     sound.setMuted(!this.settings.soundEnabled);
-    this.dom.soundIcon.textContent = this.settings.soundEnabled ? '🔔' : '🔕';
-    this.dom.musicIcon.textContent = this.settings.musicEnabled ? '🎵' : '🔇';
+    this.dom.btnSound.classList.toggle('muted', !this.settings.soundEnabled);
+    this.dom.btnMusic.classList.toggle('muted', !this.settings.musicEnabled);
   }
 
   applyAmbience(mode) {
-    const icons = { sunset: '🌅', night: '🌙', rain: '🌧️', day: '☀️' };
-    this.dom.ambienceIcon.textContent = icons[mode] || '🌅';
     this.scene.setAmbience(mode);
     sound.toggleRain(mode === 'rain');
   }
 
+  // --- TREE PICKER WITH MINIATURE ARTWORK PREVIEWS ---
   renderTreePicker() {
     const container = this.dom.treePickerContainer;
     container.innerHTML = '';
@@ -339,9 +350,12 @@ class App {
       const item = document.createElement('div');
       item.className = `tree-type-item ${type.id === this.selectedTreeType ? 'selected' : ''}`;
       item.innerHTML = `
-        <div class="type-item-name">${type.name}</div>
-        <div class="type-item-virtue">${type.virtue}</div>
-        <div class="type-item-desc">${type.description}</div>
+        <div class="tree-preview-svg">${type.svgIcon}</div>
+        <div class="tree-type-text-wrap">
+          <div class="type-item-name">${type.name}</div>
+          <div class="type-item-virtue">${type.virtue}</div>
+          <div class="type-item-desc">${type.description}</div>
+        </div>
       `;
       item.addEventListener('click', () => {
         container.querySelectorAll('.tree-type-item').forEach(c => c.classList.remove('selected'));
@@ -378,64 +392,106 @@ class App {
     this.scene.highlightTree(null);
   }
 
-  onPetTapped() {
-    sound.playPetChirp();
-    if (this.scene) this.scene.triggerPetJump();
-    setTimeout(() => this.openHabitModal(), 400);
+  // --- MULTI-PET MANAGEMENT ---
+  renderPetSpeciesPicker() {
+    const container = this.dom.petSpeciesPicker;
+    container.innerHTML = '';
+
+    Object.values(PET_SPECIES).forEach(sp => {
+      const opt = document.createElement('div');
+      opt.className = `pet-species-option ${sp.id === this.selectedPetSpecies ? 'selected' : ''}`;
+      opt.textContent = sp.name;
+      opt.addEventListener('click', () => {
+        container.querySelectorAll('.pet-species-option').forEach(c => c.classList.remove('selected'));
+        opt.classList.add('selected');
+        this.selectedPetSpecies = sp.id;
+        this.dom.adoptPetName.placeholder = `夥伴名字（預設：${sp.name}）`;
+        this.dom.adoptPetHabit.placeholder = `所守護的習慣（例如：${sp.defaultHabit}）`;
+        sound.playPetChirp();
+      });
+      container.appendChild(opt);
+    });
   }
 
-  updateHabitUI() {
-    this.dom.habitNameDisplay.textContent = this.habit.name;
-    this.dom.habitStreakCount.textContent = `${this.habit.streak || 0} 天`;
-    this.dom.habitInput.value = this.habit.name;
+  renderPetsList() {
+    const pets = Storage.getPets();
+    const container = this.dom.petsListContainer;
+    container.innerHTML = '';
+
+    if (pets.length === 0) {
+      container.innerHTML = '<div style="font-size:0.8rem; color:#8ea0b0; padding:10px 0;">島上目前沒有寵物，請在下方認養你的第一個習慣夥伴。</div>';
+      return;
+    }
+
+    const today = new Date().toDateString();
+
+    pets.forEach(pet => {
+      const sp = PET_SPECIES[pet.species] || PET_SPECIES.sheep;
+      const isCheckedToday = pet.lastCheckinDate === today;
+
+      const card = document.createElement('div');
+      card.className = 'pet-card-item';
+      card.innerHTML = `
+        <div class="pet-card-left">
+          <div class="pet-card-title">${pet.name} (${sp.name})</div>
+          <div class="pet-card-habit">守護習慣：${pet.habitTitle}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="pet-card-streak">${pet.streak || 0} 天</div>
+          <button class="btn-ghost" style="padding:6px 12px; font-size:0.75rem; border-color:${isCheckedToday ? 'rgba(104,196,138,0.4)' : 'var(--glass-border)'}; color:${isCheckedToday ? '#68c48a' : 'var(--text-primary)'}">
+            ${isCheckedToday ? '已打卡' : '打卡'}
+          </button>
+        </div>
+      `;
+
+      const checkinBtn = card.querySelector('button');
+      checkinBtn.addEventListener('click', () => {
+        const res = Storage.checkinPet(pet.id);
+        sound.playPetChirp();
+        this.scene.triggerPetJump(pet.id);
+        this.renderPetsList();
+      });
+
+      container.appendChild(card);
+    });
+  }
+
+  onPetSelected(petData) {
+    sound.playPetChirp();
+    if (this.scene) this.scene.triggerPetJump(petData.id);
+    this.openHabitModal();
   }
 
   openHabitModal() {
-    this.updateHabitUI();
-    const today = new Date().toDateString();
-    if (this.habit.lastCheckinDate === today) {
-      this.dom.btnHabitCheckin.textContent = '🎉 今日已陪伴打卡！';
-      this.dom.btnHabitCheckin.style.opacity = '0.7';
-    } else {
-      this.dom.btnHabitCheckin.textContent = '🐾 今日習慣打卡！';
-      this.dom.btnHabitCheckin.style.opacity = '1.0';
-    }
+    this.renderPetsList();
     this.openModal(this.dom.modalHabit);
   }
 
-  // --- VISUAL TREE GALLERY & MIND JOURNEY TIMELINE ---
+  // --- VISUAL TREE GALLERY IN ARCHIVE (MATCHING EXACT TREE ART) ---
   openArchiveModal() {
     const rings = Storage.getRings();
     const activeTrees = Storage.getTrees();
     const container = this.dom.ringsContainer;
     container.innerHTML = '';
 
-    // Merge active and harvested trees into visual gallery
     const allItems = [
       ...activeTrees.map(t => ({ ...t, isActive: true })),
       ...rings.map(r => ({ ...r, isActive: false }))
     ];
 
     if (allItems.length === 0) {
-      container.innerHTML = '<div style="text-align:center; padding:30px; color:#7e8e9e; font-size:0.85rem;">目前尚未有任何課題。點擊下方「播種」種下你的第一棵樹。</div>';
+      container.innerHTML = '<div style="text-align:center; padding:30px; color:#7e8e9e; font-size:0.85rem;">目前尚未有任何課題。點擊下方播種按鈕種下你的第一棵樹。</div>';
     } else {
       allItems.forEach(item => {
         const card = document.createElement('div');
         card.className = 'archive-tree-card';
         const typeInfo = TREE_TYPES[item.treeType] || TREE_TYPES.oak;
 
-        // Visual icon based on status and growth
         const now = Date.now();
         const days = item.daysElapsed || Math.max(1, Math.round((now - item.plantedAt) / (1000 * 60 * 60 * 24)));
-        let icon = '🌱';
-        if (!item.isActive) icon = '🌟';
-        else if (days >= 7) icon = '🌳';
-        else if (days >= 3) icon = '🌿';
-
         const plantedDateStr = new Date(item.plantedAt).toLocaleDateString('zh-TW', { year: 'numeric', month: 'numeric', day: 'numeric' });
         const harvestDateStr = item.harvestedAt ? new Date(item.harvestedAt).toLocaleDateString('zh-TW', { year: 'numeric', month: 'numeric', day: 'numeric' }) : null;
 
-        // Build journey notes timeline HTML
         let notesTimelineHTML = '';
         if (item.notes && item.notes.length > 0) {
           notesTimelineHTML = item.notes.map(n => {
@@ -456,9 +512,10 @@ class App {
           `;
         }
 
+        // Render with the actual tree type SVG icon!
         card.innerHTML = `
           <div class="tree-card-top-row">
-            <div class="tree-visual-icon">${icon}</div>
+            <div class="tree-visual-illustration">${typeInfo.svgIcon}</div>
             <div class="tree-card-info">
               <div class="tree-card-name">${item.title}</div>
               <div class="tree-card-sub">${typeInfo.name} · ${item.isActive ? '島上生長中' : '已釋懷圓滿'} · 歷時 ${days} 天</div>
@@ -467,16 +524,13 @@ class App {
           </div>
 
           <div class="journey-timeline-drawer">
-            <!-- Starting Worry -->
             <div class="timeline-step">
               <div class="timeline-step-title">${plantedDateStr} · 播下種子與困擾</div>
               <div class="timeline-step-content">${item.initialWorry || '無記載具體困擾，純粹立下的心靈課題。'}</div>
             </div>
 
-            <!-- Notes Journey -->
             ${notesTimelineHTML}
 
-            <!-- Harvest Insight if completed -->
             ${!item.isActive ? `
               <div class="timeline-step">
                 <div class="timeline-step-title" style="color:var(--accent-gold);">${harvestDateStr} · 破局頓悟</div>
@@ -486,7 +540,6 @@ class App {
           </div>
         `;
 
-        // Click to expand / collapse full journey
         card.addEventListener('click', () => {
           card.classList.toggle('expanded');
           sound.playWaterDrop();

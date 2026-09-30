@@ -1,13 +1,13 @@
 // Enhanced 3D Scene Pipeline for Super Mind Oasis
-// Rich Aesthetic Diorama: Floating Island, Campfire, Cozy Tent, Habit Pet & Multi-Stage Mind Trees
+// Rich Aesthetic Diorama: Floating Island, Campfire, Tent, Multi-Pet System & Collision-Free Grove
 import * as THREE from 'three';
 import { TREE_TYPES } from './storage.js';
 
 export class Scene3D {
-  constructor(canvasContainer, onTreeSelect, onPetTap, onWaterTap) {
+  constructor(canvasContainer, onTreeSelect, onPetSelect, onWaterTap) {
     this.container = canvasContainer;
     this.onTreeSelect = onTreeSelect;
-    this.onPetTap = onPetTap;
+    this.onPetSelect = onPetSelect;
     this.onWaterTap = onWaterTap;
 
     this.scene = null;
@@ -20,7 +20,7 @@ export class Scene3D {
     this.particlesGroup = null;
     this.rainGroup = null;
     this.campfireGroup = null;
-    this.petGroup = null;
+    this.petsGroup = null;
 
     // Lights
     this.dirLight = null;
@@ -28,24 +28,12 @@ export class Scene3D {
     this.ambientLight = null;
     this.fireLight = null;
 
-    // Animated meshes
+    // Meshes & Lists
     this.fireMesh = null;
     this.fireEmbers = null;
     this.waterMesh = null;
     this.waterRipples = [];
-    this.petMesh = null;
-
-    // Pet AI patrol state
-    this.petState = {
-      x: -1.2,
-      z: -0.2,
-      targetX: -1.2,
-      targetZ: -0.2,
-      rotation: 0,
-      state: 'idle', // 'idle' | 'walking' | 'sitting' | 'jumping'
-      timer: 2.0,
-      jumpProgress: 0
-    };
+    this.petInstances = [];
 
     // Camera orbit controls
     this.isDragging = false;
@@ -82,17 +70,16 @@ export class Scene3D {
     this.renderer.toneMappingExposure = 1.15;
     this.container.appendChild(this.renderer.domElement);
 
-    // Island hierarchy
     this.islandGroup = new THREE.Group();
     this.treesGroup = new THREE.Group();
     this.particlesGroup = new THREE.Group();
     this.rainGroup = new THREE.Group();
     this.campfireGroup = new THREE.Group();
-    this.petGroup = new THREE.Group();
+    this.petsGroup = new THREE.Group();
 
     this.islandGroup.add(this.treesGroup);
     this.islandGroup.add(this.campfireGroup);
-    this.islandGroup.add(this.petGroup);
+    this.islandGroup.add(this.petsGroup);
 
     this.scene.add(this.islandGroup);
     this.scene.add(this.particlesGroup);
@@ -103,7 +90,6 @@ export class Scene3D {
     this.buildZenPond();
     this.buildCozyTent();
     this.buildCampfire();
-    this.buildHabitPet();
     this.buildFloatingParticles();
     this.buildRainParticles();
     this.setAmbience('sunset');
@@ -128,15 +114,14 @@ export class Scene3D {
     this.dirLight.shadow.bias = -0.001;
     this.scene.add(this.dirLight);
 
-    // Warm flickering campfire point light
+    // Warm campfire light
     this.fireLight = new THREE.PointLight(0xff7722, 1.8, 4.5);
-    this.fireLight.position.set(-1.0, 0.6, 0.8);
+    this.fireLight.position.set(-1.25, 0.65, 0.7);
     this.fireLight.castShadow = true;
     this.islandGroup.add(this.fireLight);
   }
 
   buildFloatingIsland() {
-    // Rich undulating grass terrain
     const radius = 3.8;
     const geom = new THREE.CylinderGeometry(radius, radius * 0.94, 0.55, 36, 4);
     const pos = geom.attributes.position;
@@ -153,7 +138,7 @@ export class Scene3D {
     geom.computeVertexNormals();
 
     const topMat = new THREE.MeshStandardMaterial({
-      color: 0x42754d,
+      color: 0x3d7048,
       roughness: 0.85,
       metalness: 0.05,
       flatShading: true
@@ -163,7 +148,7 @@ export class Scene3D {
     topMesh.castShadow = true;
     this.islandGroup.add(topMesh);
 
-    // Deep craggy rock underbelly
+    // Island crag base
     const baseGeom = new THREE.ConeGeometry(radius * 0.94, 3.2, 18, 5);
     baseGeom.rotateX(Math.PI);
     const basePos = baseGeom.attributes.position;
@@ -177,24 +162,19 @@ export class Scene3D {
     }
     baseGeom.computeVertexNormals();
 
-    const baseMat = new THREE.MeshStandardMaterial({
-      color: 0x332b29,
-      roughness: 0.95,
-      metalness: 0.1,
-      flatShading: true
-    });
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0x312927, roughness: 0.95, flatShading: true });
     const baseMesh = new THREE.Mesh(baseGeom, baseMat);
     baseMesh.position.y = -1.75;
     baseMesh.receiveShadow = true;
     this.islandGroup.add(baseMesh);
 
-    // Decorative boulders & cliff fragments
+    // Decorative boulders placed safely away from trees & tent
     const rockMat = new THREE.MeshStandardMaterial({ color: 0x6e6863, roughness: 0.8, flatShading: true });
     const rocks = [
-      { x: -2.2, z: -0.6, s: 0.38 },
-      { x: -1.7, z: -1.4, s: 0.28 },
-      { x: 1.8, z: 1.3, s: 0.42 },
-      { x: 2.4, z: -0.9, s: 0.35 }
+      { x: -2.3, z: -0.3, s: 0.36 },
+      { x: -1.9, z: -1.1, s: 0.26 },
+      { x: 2.1, z: 1.4, s: 0.38 },
+      { x: 2.5, z: -0.7, s: 0.32 }
     ];
     rocks.forEach(loc => {
       const r = new THREE.Mesh(new THREE.DodecahedronGeometry(loc.s, 1), rockMat);
@@ -207,7 +187,6 @@ export class Scene3D {
   }
 
   buildZenPond() {
-    // Shimmering reflecting water pond
     const pondGeom = new THREE.CircleGeometry(1.2, 28);
     pondGeom.rotateX(-Math.PI / 2);
     const pondMat = new THREE.MeshStandardMaterial({
@@ -218,16 +197,16 @@ export class Scene3D {
       opacity: 0.88
     });
     this.waterMesh = new THREE.Mesh(pondGeom, pondMat);
-    this.waterMesh.position.set(-0.35, 0.28, -0.65);
+    this.waterMesh.position.set(-0.4, 0.28, -0.9);
     this.waterMesh.receiveShadow = true;
     this.islandGroup.add(this.waterMesh);
 
-    // Water lily pads on pond
+    // Lily pads
     const padMat = new THREE.MeshStandardMaterial({ color: 0x3b854e, roughness: 0.6, side: THREE.DoubleSide });
     const padLocs = [
-      { x: -0.6, z: -0.5, s: 0.18, r: 0.4 },
-      { x: -0.15, z: -0.85, s: 0.22, r: 1.2 },
-      { x: -0.7, z: -0.9, s: 0.15, r: 2.1 }
+      { x: -0.65, z: -0.75, s: 0.18, r: 0.4 },
+      { x: -0.2, z: -1.1, s: 0.22, r: 1.2 },
+      { x: -0.75, z: -1.15, s: 0.15, r: 2.1 }
     ];
     padLocs.forEach(pl => {
       const pad = new THREE.Mesh(new THREE.CircleGeometry(pl.s, 14), padMat);
@@ -237,77 +216,69 @@ export class Scene3D {
       this.islandGroup.add(pad);
     });
 
-    // Wooden deck border
+    // Wooden deck
     const deckMat = new THREE.MeshStandardMaterial({ color: 0x6e4a30, roughness: 0.75, flatShading: true });
     for (let i = 0; i < 3; i++) {
       const plank = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.06, 0.18), deckMat);
-      plank.position.set(0.65, 0.3, -0.65 + (i - 1) * 0.22);
+      plank.position.set(0.6, 0.3, -0.9 + (i - 1) * 0.22);
       plank.castShadow = true;
       this.islandGroup.add(plank);
     }
   }
 
+  // Tent placed at designated Camp Zone (-2.0, 1.25)
   buildCozyTent() {
-    // Cozy Scandinavian A-Frame Canvas Tent
     const tentGroup = new THREE.Group();
-    tentGroup.position.set(-1.8, 0.28, 0.7);
-    tentGroup.rotation.y = 0.45;
+    tentGroup.position.set(-2.0, 0.28, 1.25);
+    tentGroup.rotation.y = 0.55;
 
-    // Canvas fabric (Prism / Wedge)
-    const tentGeom = new THREE.CylinderGeometry(0.01, 0.8, 1.1, 4, 1, false, Math.PI / 4);
+    const tentGeom = new THREE.CylinderGeometry(0.01, 0.75, 1.05, 4, 1, false, Math.PI / 4);
     tentGeom.rotateY(Math.PI / 4);
-    const tentMat = new THREE.MeshStandardMaterial({
-      color: 0xebe3d5, // Warm canvas cream
-      roughness: 0.8,
-      flatShading: true
-    });
+    const tentMat = new THREE.MeshStandardMaterial({ color: 0xeae3d2, roughness: 0.8, flatShading: true });
     const tentMesh = new THREE.Mesh(tentGeom, tentMat);
-    tentMesh.position.y = 0.55;
+    tentMesh.position.y = 0.52;
     tentMesh.scale.set(1.1, 1, 0.9);
     tentMesh.castShadow = true;
     tentMesh.receiveShadow = true;
     tentGroup.add(tentMesh);
 
-    // Wooden ridge & frame poles
     const poleMat = new THREE.MeshStandardMaterial({ color: 0x5a3e28, roughness: 0.9 });
-    const pole1 = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.3), poleMat);
-    pole1.position.set(0, 0.55, 0.45);
+    const pole1 = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 1.25), poleMat);
+    pole1.position.set(0, 0.52, 0.42);
     pole1.rotation.x = -0.3;
     tentGroup.add(pole1);
 
-    const pole2 = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.3), poleMat);
-    pole2.position.set(0, 0.55, -0.45);
+    const pole2 = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 1.25), poleMat);
+    pole2.position.set(0, 0.52, -0.42);
     pole2.rotation.x = 0.3;
     tentGroup.add(pole2);
 
     this.islandGroup.add(tentGroup);
   }
 
+  // Campfire placed at (-1.25, 0.7)
   buildCampfire() {
-    this.campfireGroup.position.set(-0.95, 0.28, 0.85);
+    this.campfireGroup.position.set(-1.25, 0.28, 0.7);
 
-    // Stone ring around fire
     const stoneMat = new THREE.MeshStandardMaterial({ color: 0x55504c, roughness: 0.85, flatShading: true });
     for (let i = 0; i < 7; i++) {
       const angle = (i / 7) * Math.PI * 2;
-      const sMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(0.09, 0), stoneMat);
-      sMesh.position.set(Math.cos(angle) * 0.28, 0.06, Math.sin(angle) * 0.28);
+      const sMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(0.08, 0), stoneMat);
+      sMesh.position.set(Math.cos(angle) * 0.26, 0.05, Math.sin(angle) * 0.26);
       sMesh.rotation.set(Math.random(), Math.random(), Math.random());
       sMesh.castShadow = true;
       this.campfireGroup.add(sMesh);
     }
 
-    // Crossed birch firewood logs
     const logMat = new THREE.MeshStandardMaterial({ color: 0x4a3628, roughness: 0.9 });
     for (let i = 0; i < 3; i++) {
-      const log = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.38), logMat);
+      const log = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.35), logMat);
       log.rotation.z = 0.65;
       log.rotation.y = (i / 3) * Math.PI;
-      log.position.y = 0.06;
+      log.position.y = 0.05;
       this.campfireGroup.add(log);
     }
 
-    // Low-poly animated flame crystals
     const flameMat = new THREE.MeshStandardMaterial({
       color: 0xff6600,
       emissive: 0xffaa22,
@@ -315,23 +286,22 @@ export class Scene3D {
       roughness: 0.2,
       flatShading: true
     });
-    this.fireMesh = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.38, 5), flameMat);
-    this.fireMesh.position.y = 0.22;
+    this.fireMesh = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 5), flameMat);
+    this.fireMesh.position.y = 0.2;
     this.campfireGroup.add(this.fireMesh);
 
-    // Floating flame ember sparks
-    const count = 18;
+    const count = 16;
     const emberGeom = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 0.25;
-      pos[i * 3 + 1] = Math.random() * 0.6 + 0.15;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 0.25;
+      pos[i * 3] = (Math.random() - 0.5) * 0.22;
+      pos[i * 3 + 1] = Math.random() * 0.55 + 0.15;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 0.22;
     }
     emberGeom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     this.fireEmbers = new THREE.Points(emberGeom, new THREE.PointsMaterial({
       color: 0xffaa33,
-      size: 0.06,
+      size: 0.055,
       transparent: true,
       opacity: 0.85,
       blending: THREE.AdditiveBlending
@@ -339,77 +309,450 @@ export class Scene3D {
     this.campfireGroup.add(this.fireEmbers);
   }
 
-  buildHabitPet() {
-    // Low-poly Spirit Companion Fox / Shiba
-    const pet = new THREE.Group();
-    pet.name = 'habitPet';
-    pet.userData = { isPet: true };
+  // --- MULTI-PET PROCEDURAL CREATION (5 SPECIES: SHEEP, FOX, SHIBA, CAT, DEER) ---
+  createPetMesh(petData, initialIndex = 0) {
+    const petGroup = new THREE.Group();
+    petGroup.name = petData.id;
+    petGroup.userData = { petId: petData.id, petData };
 
-    const furMat = new THREE.MeshStandardMaterial({ color: 0xd9753b, roughness: 0.8, flatShading: true }); // Warm terracotta orange
-    const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf5eedc, roughness: 0.8, flatShading: true }); // Belly/tail cream
-    const darkMat = new THREE.MeshStandardMaterial({ color: 0x2b221c, roughness: 0.9 }); // Nose/ears tip
+    const species = petData.species || 'sheep';
 
-    // Body
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.22, 6, 8), furMat);
-    body.rotation.z = Math.PI / 2;
-    body.position.y = 0.15;
-    body.castShadow = true;
-    pet.add(body);
+    if (species === 'sheep') {
+      // 1. FLUFFY WHITE CLOUD SHEEP (綿羊)
+      const woolMat = new THREE.MeshStandardMaterial({ color: 0xf6f3eb, roughness: 0.95, flatShading: true });
+      const faceMat = new THREE.MeshStandardMaterial({ color: 0xd9cca8, roughness: 0.8, flatShading: true });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x3d352e, roughness: 0.9 });
 
-    // White chest belly patch
-    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), whiteMat);
-    belly.scale.set(0.7, 0.7, 0.9);
-    belly.position.set(0.08, 0.13, 0);
-    pet.add(belly);
+      // Fluffy cloud body (cluster of soft spheres)
+      const woolBody = new THREE.Group();
+      const woolOffsets = [
+        { x: 0, y: 0.16, z: 0, r: 0.16 },
+        { x: 0.09, y: 0.18, z: 0.05, r: 0.13 },
+        { x: -0.09, y: 0.18, z: -0.05, r: 0.13 },
+        { x: 0.06, y: 0.14, z: -0.08, r: 0.12 },
+        { x: -0.06, y: 0.14, z: 0.08, r: 0.12 }
+      ];
+      woolOffsets.forEach(w => {
+        const m = new THREE.Mesh(new THREE.DodecahedronGeometry(w.r, 1), woolMat);
+        m.position.set(w.x, w.y, w.z);
+        m.castShadow = true;
+        woolBody.add(m);
+      });
+      petGroup.add(woolBody);
 
-    // Head
-    const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.12, 0), furMat);
-    head.position.set(0.18, 0.25, 0);
-    head.castShadow = true;
-    pet.add(head);
+      // Cute head
+      const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.1, 0), faceMat);
+      head.position.set(0.18, 0.22, 0);
+      head.castShadow = true;
+      petGroup.add(head);
 
-    // Snout
-    const snout = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.09, 4), whiteMat);
-    snout.rotation.z = -Math.PI / 2;
-    snout.position.set(0.28, 0.23, 0);
-    pet.add(snout);
+      // Floppy ears
+      for (let i = 0; i < 2; i++) {
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.08, 4), faceMat);
+        ear.position.set(0.16, 0.21, i === 0 ? 0.09 : -0.09);
+        ear.rotation.x = i === 0 ? 1.2 : -1.2;
+        petGroup.add(ear);
+      }
 
-    // Nose
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.02, 4, 4), darkMat);
-    nose.position.set(0.33, 0.23, 0);
-    pet.add(nose);
+      // 4 Stubby little legs
+      const legGeom = new THREE.CylinderGeometry(0.024, 0.024, 0.11);
+      const legOffsets = [
+        { x: 0.08, z: 0.07 }, { x: 0.08, z: -0.07 },
+        { x: -0.08, z: 0.07 }, { x: -0.08, z: -0.07 }
+      ];
+      legOffsets.forEach(lo => {
+        const leg = new THREE.Mesh(legGeom, darkMat);
+        leg.position.set(lo.x, 0.055, lo.z);
+        petGroup.add(leg);
+      });
 
-    // Ears
-    for (let i = 0; i < 2; i++) {
-      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.09, 4), darkMat);
-      ear.position.set(0.18, 0.36, i === 0 ? 0.06 : -0.06);
-      ear.rotation.x = i === 0 ? 0.25 : -0.25;
-      pet.add(ear);
+    } else if (species === 'fox') {
+      // 2. SPIRIT FOX (小靈狐)
+      const furMat = new THREE.MeshStandardMaterial({ color: 0xd9753b, roughness: 0.8, flatShading: true });
+      const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf5eedc, roughness: 0.8, flatShading: true });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x2b221c, roughness: 0.9 });
+
+      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.2, 5, 6), furMat);
+      body.rotation.z = Math.PI / 2;
+      body.position.y = 0.14;
+      body.castShadow = true;
+      petGroup.add(body);
+
+      const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.11, 0), furMat);
+      head.position.set(0.16, 0.24, 0);
+      petGroup.add(head);
+
+      const snout = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.08, 4), whiteMat);
+      snout.rotation.z = -Math.PI / 2;
+      snout.position.set(0.26, 0.22, 0);
+      petGroup.add(snout);
+
+      for (let i = 0; i < 2; i++) {
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.038, 0.085, 4), darkMat);
+        ear.position.set(0.16, 0.34, i === 0 ? 0.055 : -0.055);
+        ear.rotation.x = i === 0 ? 0.25 : -0.25;
+        petGroup.add(ear);
+      }
+
+      const tail = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.24, 5), whiteMat);
+      tail.rotation.z = -1.2;
+      tail.position.set(-0.15, 0.19, 0);
+      petGroup.add(tail);
+      petGroup.userData.tail = tail;
+
+      const legGeom = new THREE.CylinderGeometry(0.022, 0.022, 0.11);
+      [{ x: 0.09, z: 0.07 }, { x: 0.09, z: -0.07 }, { x: -0.09, z: 0.07 }, { x: -0.09, z: -0.07 }].forEach(lo => {
+        const leg = new THREE.Mesh(legGeom, darkMat);
+        leg.position.set(lo.x, 0.055, lo.z);
+        petGroup.add(leg);
+      });
+
+    } else if (species === 'shiba') {
+      // 3. SHIBA INU (柴犬)
+      const furMat = new THREE.MeshStandardMaterial({ color: 0xd49b42, roughness: 0.8, flatShading: true });
+      const whiteMat = new THREE.MeshStandardMaterial({ color: 0xfff6ea, roughness: 0.8, flatShading: true });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x221a14, roughness: 0.9 });
+
+      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.22, 6, 6), furMat);
+      body.rotation.z = Math.PI / 2;
+      body.position.y = 0.15;
+      body.castShadow = true;
+      petGroup.add(body);
+
+      const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.11, 0), furMat);
+      head.position.set(0.18, 0.25, 0);
+      petGroup.add(head);
+
+      const snout = new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 5), whiteMat);
+      snout.position.set(0.26, 0.23, 0);
+      petGroup.add(snout);
+
+      // Cinnamon roll curled tail
+      const tail = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.028, 5, 10, Math.PI * 1.4), furMat);
+      tail.position.set(-0.16, 0.24, 0);
+      tail.rotation.y = Math.PI / 2;
+      petGroup.add(tail);
+      petGroup.userData.tail = tail;
+
+      const legGeom = new THREE.CylinderGeometry(0.024, 0.024, 0.12);
+      [{ x: 0.09, z: 0.08 }, { x: 0.09, z: -0.08 }, { x: -0.09, z: 0.08 }, { x: -0.09, z: -0.08 }].forEach(lo => {
+        const leg = new THREE.Mesh(legGeom, whiteMat);
+        leg.position.set(lo.x, 0.06, lo.z);
+        petGroup.add(leg);
+      });
+
+    } else if (species === 'cat') {
+      // 4. MYSTIC CAT (靈貓)
+      const furMat = new THREE.MeshStandardMaterial({ color: 0x242426, roughness: 0.7, flatShading: true });
+      const eyeMat = new THREE.MeshStandardMaterial({ color: 0x76e3c0, emissive: 0x32a884, emissiveIntensity: 0.6 });
+
+      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.22, 5, 6), furMat);
+      body.rotation.z = Math.PI / 2;
+      body.position.y = 0.13;
+      body.castShadow = true;
+      petGroup.add(body);
+
+      const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.1, 0), furMat);
+      head.position.set(0.16, 0.22, 0);
+      petGroup.add(head);
+
+      for (let i = 0; i < 2; i++) {
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.07, 4), furMat);
+        ear.position.set(0.16, 0.31, i === 0 ? 0.05 : -0.05);
+        petGroup.add(ear);
+
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.018, 4, 4), eyeMat);
+        eye.position.set(0.23, 0.23, i === 0 ? 0.04 : -0.04);
+        petGroup.add(eye);
+      }
+
+      // Elegant curving tail
+      const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.015, 0.26), furMat);
+      tail.position.set(-0.16, 0.24, 0);
+      tail.rotation.z = -0.7;
+      petGroup.add(tail);
+      petGroup.userData.tail = tail;
+
+      const legGeom = new THREE.CylinderGeometry(0.02, 0.02, 0.11);
+      [{ x: 0.08, z: 0.06 }, { x: 0.08, z: -0.06 }, { x: -0.08, z: 0.06 }, { x: -0.08, z: -0.06 }].forEach(lo => {
+        const leg = new THREE.Mesh(legGeom, furMat);
+        leg.position.set(lo.x, 0.055, lo.z);
+        petGroup.add(leg);
+      });
+
+    } else {
+      // 5. FOREST FAWN DEER (森林小鹿)
+      const furMat = new THREE.MeshStandardMaterial({ color: 0xaa6e40, roughness: 0.85, flatShading: true });
+      const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf8f2e4, roughness: 0.85 });
+      const antlerMat = new THREE.MeshStandardMaterial({ color: 0xd6c2a8, roughness: 0.8 });
+
+      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.24, 5, 6), furMat);
+      body.rotation.z = Math.PI / 2;
+      body.position.y = 0.19;
+      body.castShadow = true;
+      petGroup.add(body);
+
+      const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.1, 0), furMat);
+      head.position.set(0.18, 0.32, 0);
+      petGroup.add(head);
+
+      // Tiny velvet antlers
+      for (let i = 0; i < 2; i++) {
+        const antler = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.12), antlerMat);
+        antler.position.set(0.16, 0.42, i === 0 ? 0.05 : -0.05);
+        antler.rotation.z = -0.2;
+        antler.rotation.x = i === 0 ? 0.3 : -0.3;
+        petGroup.add(antler);
+      }
+
+      // Slender tall legs
+      const legGeom = new THREE.CylinderGeometry(0.018, 0.015, 0.19);
+      [{ x: 0.09, z: 0.07 }, { x: 0.09, z: -0.07 }, { x: -0.09, z: 0.07 }, { x: -0.09, z: -0.07 }].forEach(lo => {
+        const leg = new THREE.Mesh(legGeom, furMat);
+        leg.position.set(lo.x, 0.095, lo.z);
+        petGroup.add(leg);
+      });
     }
 
-    // Bushy Tail
-    this.petTail = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.25, 5), whiteMat);
-    this.petTail.rotation.z = -1.2;
-    this.petTail.position.set(-0.16, 0.2, 0);
-    pet.add(this.petTail);
-
-    // 4 Little Legs
-    const legGeom = new THREE.CylinderGeometry(0.025, 0.025, 0.12);
-    const legOffsets = [
-      { x: 0.1, z: 0.08 },
-      { x: 0.1, z: -0.08 },
-      { x: -0.1, z: 0.08 },
-      { x: -0.1, z: -0.08 }
+    // Waypoint patrol state
+    const waypoints = [
+      { x: -0.6, z: 0.2 },
+      { x: 0.5, z: -0.1 },
+      { x: -0.2, z: 1.1 },
+      { x: 1.1, z: 0.8 },
+      { x: -1.3, z: 0.1 },
+      { x: 0.8, z: -0.8 }
     ];
-    legOffsets.forEach(lo => {
-      const leg = new THREE.Mesh(legGeom, darkMat);
-      leg.position.set(lo.x, 0.06, lo.z);
-      pet.add(leg);
+    const initialPos = waypoints[initialIndex % waypoints.length];
+
+    petGroup.position.set(initialPos.x, 0.28, initialPos.z);
+    petGroup.userData.aiState = {
+      x: initialPos.x,
+      z: initialPos.z,
+      targetX: initialPos.x,
+      targetZ: initialPos.z,
+      rotation: 0,
+      state: 'idle',
+      timer: 2.0 + initialIndex * 1.2,
+      jumpProgress: 0,
+      speed: 0.3 + (initialIndex % 3) * 0.05
+    };
+
+    return petGroup;
+  }
+
+  updatePets(petsData) {
+    while (this.petsGroup.children.length > 0) {
+      this.petsGroup.remove(this.petsGroup.children[0]);
+    }
+    this.petInstances = [];
+
+    petsData.forEach((petData, idx) => {
+      const mesh = this.createPetMesh(petData, idx);
+      this.petsGroup.add(mesh);
+      this.petInstances.push(mesh);
+    });
+  }
+
+  // --- PROCEDURAL MIND TREES (4 STAGES) ---
+  createTreeMesh(treeData) {
+    const group = new THREE.Group();
+    group.name = treeData.id;
+    group.userData = { treeId: treeData.id, treeData };
+
+    const typeInfo = TREE_TYPES[treeData.treeType] || TREE_TYPES.oak;
+    const now = Date.now();
+    const ageDays = (now - treeData.plantedAt) / (1000 * 60 * 60 * 24);
+    const nurtureBoost = (treeData.nurtureCount || 0) * 0.45;
+    const effectiveAge = ageDays + nurtureBoost;
+
+    let stage = 0;
+    if (effectiveAge >= 7) stage = 3;
+    else if (effectiveAge >= 3.5) stage = 2;
+    else if (effectiveAge >= 1) stage = 1;
+
+    const trunkMat = new THREE.MeshStandardMaterial({ color: typeInfo.trunkColor, roughness: 0.9, flatShading: true });
+    const foliageMat = new THREE.MeshStandardMaterial({ color: typeInfo.foliageColor, roughness: 0.7, flatShading: true });
+    const goldenFruitMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffaa00, emissiveIntensity: 0.7, roughness: 0.3 });
+
+    if (stage === 0) {
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.32, 6), trunkMat);
+      stem.position.y = 0.16;
+      stem.castShadow = true;
+      group.add(stem);
+
+      for (let i = 0; i < 2; i++) {
+        const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.09, 5, 5), foliageMat);
+        leaf.scale.set(1.4, 0.3, 0.8);
+        leaf.position.set(i === 0 ? 0.07 : -0.07, 0.32, 0);
+        leaf.rotation.z = i === 0 ? 0.35 : -0.35;
+        leaf.castShadow = true;
+        group.add(leaf);
+      }
+    } else if (stage === 1) {
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.12, 0.85, 7), trunkMat);
+      trunk.position.y = 0.42;
+      trunk.castShadow = true;
+      group.add(trunk);
+
+      [{ y: 0.8, s: 0.32 }, { y: 1.05, s: 0.25 }].forEach(f => {
+        const cloud = new THREE.Mesh(new THREE.DodecahedronGeometry(f.s, 1), foliageMat);
+        cloud.position.y = f.y;
+        cloud.castShadow = true;
+        group.add(cloud);
+      });
+    } else if (stage === 2) {
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.22, 1.3, 8), trunkMat);
+      trunk.position.y = 0.65;
+      trunk.castShadow = true;
+      group.add(trunk);
+
+      const crown = [
+        { x: 0, y: 1.35, z: 0, r: 0.58 },
+        { x: -0.32, y: 1.15, z: 0.18, r: 0.46 },
+        { x: 0.35, y: 1.2, z: -0.15, r: 0.44 },
+        { x: 0, y: 1.7, z: 0, r: 0.38 }
+      ];
+      crown.forEach((n, idx) => {
+        const f = new THREE.Mesh(new THREE.IcosahedronGeometry(n.r, 1), foliageMat);
+        f.position.set(n.x, n.y, n.z);
+        f.castShadow = true;
+        f.userData = { isFoliage: true, phase: idx };
+        group.add(f);
+      });
+    } else {
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.3, 1.6, 9), trunkMat);
+      trunk.position.y = 0.8;
+      trunk.castShadow = true;
+      group.add(trunk);
+
+      const crown = [
+        { x: 0, y: 1.6, z: 0, r: 0.72 },
+        { x: -0.45, y: 1.35, z: 0.25, r: 0.56 },
+        { x: 0.48, y: 1.4, z: -0.2, r: 0.54 },
+        { x: 0, y: 2.1, z: 0, r: 0.48 }
+      ];
+      crown.forEach((n, idx) => {
+        const f = new THREE.Mesh(new THREE.IcosahedronGeometry(n.r, 1), foliageMat);
+        f.position.set(n.x, n.y, n.z);
+        f.castShadow = true;
+        f.userData = { isFoliage: true, phase: idx };
+        group.add(f);
+
+        const fruit = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), goldenFruitMat);
+        fruit.position.set(n.x + Math.sin(idx * 2) * 0.4, n.y - 0.2, n.z + Math.cos(idx * 2) * 0.4);
+        group.add(fruit);
+      });
+    }
+
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.35, 0.48, 24), new THREE.MeshBasicMaterial({
+      color: typeInfo.glowColor,
+      transparent: true,
+      opacity: 0.0,
+      side: THREE.DoubleSide
+    }));
+    ring.rotateX(-Math.PI / 2);
+    ring.position.y = 0.28;
+    ring.name = 'selectionAura';
+    group.add(ring);
+
+    const posX = treeData.position ? treeData.position.x : 0.25;
+    const posZ = treeData.position ? treeData.position.z : 0.95;
+    group.position.set(posX, 0.26, posZ);
+
+    return group;
+  }
+
+  updateTrees(treesData) {
+    while (this.treesGroup.children.length > 0) {
+      this.treesGroup.remove(this.treesGroup.children[0]);
+    }
+    this.treeMeshes = [];
+
+    treesData.forEach(treeData => {
+      const meshGroup = this.createTreeMesh(treeData);
+      this.treesGroup.add(meshGroup);
+      this.treeMeshes.push(meshGroup);
     });
 
-    pet.position.set(this.petState.x, 0.28, this.petState.z);
-    this.petMesh = pet;
-    this.petGroup.add(pet);
+    if (this.selectedTreeId) {
+      this.highlightTree(this.selectedTreeId);
+    }
+  }
+
+  highlightTree(treeId) {
+    this.selectedTreeId = treeId;
+    this.treeMeshes.forEach(mesh => {
+      const aura = mesh.getObjectByName('selectionAura');
+      if (aura) aura.material.opacity = (mesh.userData.treeId === treeId) ? 0.85 : 0.0;
+    });
+  }
+
+  triggerWaterRipple(x, z) {
+    const ripple = new THREE.Mesh(new THREE.RingGeometry(0.08, 0.12, 24), new THREE.MeshBasicMaterial({
+      color: 0x99eef5,
+      transparent: true,
+      opacity: 0.9,
+      side: THREE.DoubleSide
+    }));
+    ripple.rotateX(-Math.PI / 2);
+    ripple.position.set(x, 0.29, z);
+    this.islandGroup.add(ripple);
+    this.waterRipples.push({ mesh: ripple, scale: 1, opacity: 0.9 });
+  }
+
+  triggerPetJump(petId) {
+    const petMesh = this.petInstances.find(p => p.userData.petId === petId);
+    if (petMesh && petMesh.userData.aiState) {
+      petMesh.userData.aiState.state = 'jumping';
+      petMesh.userData.aiState.jumpProgress = 0;
+    }
+  }
+
+  setAmbience(mode) {
+    this.currentAmbience = mode;
+
+    if (mode === 'day') {
+      this.renderer.setClearColor(0x7fb8db, 1);
+      this.scene.fog = new THREE.FogExp2(0x7fb8db, 0.035);
+      this.dirLight.color.setHex(0xfffaea);
+      this.dirLight.intensity = 1.5;
+      this.hemiLight.color.setHex(0xffffff);
+      this.hemiLight.intensity = 0.7;
+      this.ambientLight.intensity = 0.45;
+      this.rainGroup.visible = false;
+      this.fireLight.intensity = 0.8;
+    } else if (mode === 'sunset') {
+      this.renderer.setClearColor(0x281924, 1);
+      this.scene.fog = new THREE.FogExp2(0x281924, 0.04);
+      this.dirLight.color.setHex(0xffaa5e);
+      this.dirLight.intensity = 1.6;
+      this.hemiLight.color.setHex(0xffc599);
+      this.hemiLight.intensity = 0.8;
+      this.ambientLight.intensity = 0.45;
+      this.rainGroup.visible = false;
+      this.fireLight.intensity = 2.0;
+    } else if (mode === 'night') {
+      this.renderer.setClearColor(0x0e131a, 1);
+      this.scene.fog = new THREE.FogExp2(0x0e131a, 0.042);
+      this.dirLight.color.setHex(0x7399c2);
+      this.dirLight.intensity = 0.65;
+      this.hemiLight.color.setHex(0x354963);
+      this.hemiLight.intensity = 0.4;
+      this.ambientLight.intensity = 0.25;
+      this.rainGroup.visible = false;
+      this.fireLight.intensity = 2.4;
+    } else if (mode === 'rain') {
+      this.renderer.setClearColor(0x192128, 1);
+      this.scene.fog = new THREE.FogExp2(0x192128, 0.048);
+      this.dirLight.color.setHex(0x8faec7);
+      this.dirLight.intensity = 0.8;
+      this.hemiLight.color.setHex(0x4a657c);
+      this.hemiLight.intensity = 0.5;
+      this.ambientLight.intensity = 0.35;
+      this.rainGroup.visible = true;
+      this.fireLight.intensity = 1.8;
+    }
   }
 
   buildFloatingParticles() {
@@ -452,234 +795,6 @@ export class Scene3D {
     this.rainGroup.visible = false;
   }
 
-  // --- MULTI-STAGE PROCEDURAL MIND TREES ---
-  createTreeMesh(treeData) {
-    const group = new THREE.Group();
-    group.name = treeData.id;
-    group.userData = { treeId: treeData.id, treeData };
-
-    const typeInfo = TREE_TYPES[treeData.treeType] || TREE_TYPES.oak;
-    const now = Date.now();
-    const ageDays = (now - treeData.plantedAt) / (1000 * 60 * 60 * 24);
-    const nurtureBoost = (treeData.nurtureCount || 0) * 0.45;
-    const effectiveAge = ageDays + nurtureBoost;
-
-    // 4 Defined Stages
-    // 0: Sprout (< 1 day)
-    // 1: Young Sapling (1 - 3.5 days)
-    // 2: Lush Tree (3.5 - 7 days)
-    // 3: Ancient Illuminated Tree (7+ days)
-    let stage = 0;
-    if (effectiveAge >= 7) stage = 3;
-    else if (effectiveAge >= 3.5) stage = 2;
-    else if (effectiveAge >= 1) stage = 1;
-
-    const trunkMat = new THREE.MeshStandardMaterial({
-      color: typeInfo.trunkColor,
-      roughness: 0.9,
-      flatShading: true
-    });
-    const foliageMat = new THREE.MeshStandardMaterial({
-      color: typeInfo.foliageColor,
-      roughness: 0.7,
-      flatShading: true
-    });
-    const goldenFruitMat = new THREE.MeshStandardMaterial({
-      color: 0xffd700,
-      emissive: 0xffaa00,
-      emissiveIntensity: 0.7,
-      roughness: 0.3
-    });
-
-    if (stage === 0) {
-      // 0. SPROUT (小嫩芽)
-      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.32, 6), trunkMat);
-      stem.position.y = 0.16;
-      stem.castShadow = true;
-      group.add(stem);
-
-      for (let i = 0; i < 2; i++) {
-        const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.09, 5, 5), foliageMat);
-        leaf.scale.set(1.4, 0.3, 0.8);
-        leaf.position.set(i === 0 ? 0.07 : -0.07, 0.32, 0);
-        leaf.rotation.z = i === 0 ? 0.35 : -0.35;
-        leaf.castShadow = true;
-        group.add(leaf);
-      }
-    } else if (stage === 1) {
-      // 1. SAPLING (幼苗小樹)
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.12, 0.85, 7), trunkMat);
-      trunk.position.y = 0.42;
-      trunk.castShadow = true;
-      group.add(trunk);
-
-      const fNodes = [{ y: 0.8, s: 0.32 }, { y: 1.05, s: 0.25 }];
-      fNodes.forEach(f => {
-        const cloud = new THREE.Mesh(new THREE.DodecahedronGeometry(f.s, 1), foliageMat);
-        cloud.position.y = f.y;
-        cloud.castShadow = true;
-        group.add(cloud);
-      });
-    } else if (stage === 2) {
-      // 2. LUSH TREE (繁茂大樹)
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.22, 1.3, 8), trunkMat);
-      trunk.position.y = 0.65;
-      trunk.castShadow = true;
-      group.add(trunk);
-
-      const crown = [
-        { x: 0, y: 1.35, z: 0, r: 0.58 },
-        { x: -0.32, y: 1.15, z: 0.18, r: 0.46 },
-        { x: 0.35, y: 1.2, z: -0.15, r: 0.44 },
-        { x: 0, y: 1.7, z: 0, r: 0.38 }
-      ];
-      crown.forEach((n, idx) => {
-        const f = new THREE.Mesh(new THREE.IcosahedronGeometry(n.r, 1), foliageMat);
-        f.position.set(n.x, n.y, n.z);
-        f.castShadow = true;
-        f.userData = { isFoliage: true, phase: idx };
-        group.add(f);
-      });
-    } else {
-      // 3. ANCIENT ILLUMINATED TREE (遠古碩果巨木)
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.3, 1.6, 9), trunkMat);
-      trunk.position.y = 0.8;
-      trunk.castShadow = true;
-      group.add(trunk);
-
-      const crown = [
-        { x: 0, y: 1.6, z: 0, r: 0.72 },
-        { x: -0.45, y: 1.35, z: 0.25, r: 0.56 },
-        { x: 0.48, y: 1.4, z: -0.2, r: 0.54 },
-        { x: 0, y: 2.1, z: 0, r: 0.48 },
-        { x: 0.2, y: 1.5, z: 0.4, r: 0.42 }
-      ];
-      crown.forEach((n, idx) => {
-        const f = new THREE.Mesh(new THREE.IcosahedronGeometry(n.r, 1), foliageMat);
-        f.position.set(n.x, n.y, n.z);
-        f.castShadow = true;
-        f.userData = { isFoliage: true, phase: idx };
-        group.add(f);
-
-        // Radiant Golden Wisdom Fruits
-        const fruit = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), goldenFruitMat);
-        fruit.position.set(n.x + Math.sin(idx * 2) * 0.4, n.y - 0.2, n.z + Math.cos(idx * 2) * 0.4);
-        group.add(fruit);
-      });
-    }
-
-    // Selection Aura Ring
-    const ringGeom = new THREE.RingGeometry(0.35, 0.48, 24);
-    ringGeom.rotateX(-Math.PI / 2);
-    const ring = new THREE.Mesh(ringGeom, new THREE.MeshBasicMaterial({
-      color: typeInfo.glowColor,
-      transparent: true,
-      opacity: 0.0,
-      side: THREE.DoubleSide
-    }));
-    ring.position.y = 0.28;
-    ring.name = 'selectionAura';
-    group.add(ring);
-
-    const posX = treeData.position ? treeData.position.x : 0;
-    const posZ = treeData.position ? treeData.position.z : 0;
-    group.position.set(posX, 0.26, posZ);
-
-    return group;
-  }
-
-  updateTrees(treesData) {
-    while (this.treesGroup.children.length > 0) {
-      this.treesGroup.remove(this.treesGroup.children[0]);
-    }
-    this.treeMeshes = [];
-
-    treesData.forEach(treeData => {
-      const meshGroup = this.createTreeMesh(treeData);
-      this.treesGroup.add(meshGroup);
-      this.treeMeshes.push(meshGroup);
-    });
-
-    if (this.selectedTreeId) {
-      this.highlightTree(this.selectedTreeId);
-    }
-  }
-
-  highlightTree(treeId) {
-    this.selectedTreeId = treeId;
-    this.treeMeshes.forEach(mesh => {
-      const aura = mesh.getObjectByName('selectionAura');
-      if (aura) aura.material.opacity = (mesh.userData.treeId === treeId) ? 0.85 : 0.0;
-    });
-  }
-
-  triggerWaterRipple(x, z) {
-    const rippleGeom = new THREE.RingGeometry(0.08, 0.12, 24);
-    rippleGeom.rotateX(-Math.PI / 2);
-    const ripple = new THREE.Mesh(rippleGeom, new THREE.MeshBasicMaterial({
-      color: 0x99eef5,
-      transparent: true,
-      opacity: 0.9,
-      side: THREE.DoubleSide
-    }));
-    ripple.position.set(x, 0.29, z);
-    this.islandGroup.add(ripple);
-
-    this.waterRipples.push({ mesh: ripple, scale: 1, opacity: 0.9 });
-  }
-
-  // Trigger happy heart jump on pet
-  triggerPetJump() {
-    this.petState.state = 'jumping';
-    this.petState.jumpProgress = 0;
-  }
-
-  setAmbience(mode) {
-    this.currentAmbience = mode;
-
-    if (mode === 'day') {
-      this.renderer.setClearColor(0x7fb8db, 1);
-      this.scene.fog = new THREE.FogExp2(0x7fb8db, 0.035);
-      this.dirLight.color.setHex(0xfffaea);
-      this.dirLight.intensity = 1.5;
-      this.hemiLight.color.setHex(0xffffff);
-      this.hemiLight.intensity = 0.7;
-      this.ambientLight.intensity = 0.45;
-      this.rainGroup.visible = false;
-      this.fireLight.intensity = 0.8;
-    } else if (mode === 'sunset') {
-      this.renderer.setClearColor(0x281924, 1); // Rich twilight amber & plum
-      this.scene.fog = new THREE.FogExp2(0x281924, 0.04);
-      this.dirLight.color.setHex(0xffaa5e);
-      this.dirLight.intensity = 1.6;
-      this.hemiLight.color.setHex(0xffc599);
-      this.hemiLight.intensity = 0.8;
-      this.ambientLight.intensity = 0.45;
-      this.rainGroup.visible = false;
-      this.fireLight.intensity = 2.0;
-    } else if (mode === 'night') {
-      this.renderer.setClearColor(0x0e131a, 1);
-      this.scene.fog = new THREE.FogExp2(0x0e131a, 0.042);
-      this.dirLight.color.setHex(0x7399c2);
-      this.dirLight.intensity = 0.65;
-      this.hemiLight.color.setHex(0x354963);
-      this.hemiLight.intensity = 0.4;
-      this.ambientLight.intensity = 0.25;
-      this.rainGroup.visible = false;
-      this.fireLight.intensity = 2.4; // Fire shines brightly in night
-    } else if (mode === 'rain') {
-      this.renderer.setClearColor(0x192128, 1);
-      this.scene.fog = new THREE.FogExp2(0x192128, 0.048);
-      this.dirLight.color.setHex(0x8faec7);
-      this.dirLight.intensity = 0.8;
-      this.hemiLight.color.setHex(0x4a657c);
-      this.hemiLight.intensity = 0.5;
-      this.ambientLight.intensity = 0.35;
-      this.rainGroup.visible = true;
-      this.fireLight.intensity = 1.8;
-    }
-  }
-
   setupInteraction() {
     const el = this.renderer.domElement;
     const raycaster = new THREE.Raycaster();
@@ -719,17 +834,21 @@ export class Scene3D {
 
         raycaster.setFromCamera(mouse, this.camera);
 
-        // 1. Check Pet Tap
-        if (this.petMesh) {
-          const petHits = raycaster.intersectObjects(this.petMesh.children, true);
-          if (petHits.length > 0) {
-            this.triggerPetJump();
-            if (this.onPetTap) this.onPetTap();
+        // 1. Check Pet selection
+        const petHits = raycaster.intersectObjects(this.petsGroup.children, true);
+        if (petHits.length > 0) {
+          let hitObj = petHits[0].object;
+          while (hitObj.parent && hitObj.parent !== this.petsGroup) {
+            hitObj = hitObj.parent;
+          }
+          if (hitObj.userData && hitObj.userData.petId) {
+            this.triggerPetJump(hitObj.userData.petId);
+            if (this.onPetSelect) this.onPetSelect(hitObj.userData.petData);
             return;
           }
         }
 
-        // 2. Check Tree Intersections
+        // 2. Check Tree selection
         const treeHits = raycaster.intersectObjects(this.treesGroup.children, true);
         if (treeHits.length > 0) {
           let hitObj = treeHits[0].object;
@@ -790,16 +909,13 @@ export class Scene3D {
     const delta = this.clock.getDelta();
     const time = this.clock.getElapsedTime();
 
-    // Smooth camera damping
     this.currentRotationY += (this.targetRotationY - this.currentRotationY) * 0.08;
     this.currentRotationX += (this.targetRotationX - this.currentRotationX) * 0.08;
     this.zoom += (this.targetZoom - this.zoom) * 0.08;
     this.updateCameraPosition();
 
-    // Gentle Island Floating Bob
     this.islandGroup.position.y = Math.sin(time * 0.8) * 0.06;
 
-    // Campfire Flame Flicker Animation
     if (this.fireMesh) {
       const flicker = Math.sin(time * 14) * 0.08 + Math.cos(time * 22) * 0.06;
       this.fireMesh.scale.set(1 + flicker * 0.5, 1 + flicker, 1 + flicker * 0.5);
@@ -808,7 +924,6 @@ export class Scene3D {
       }
     }
 
-    // Flame Embers Rise
     if (this.fireEmbers) {
       const pos = this.fireEmbers.geometry.attributes.position;
       for (let i = 0; i < pos.count; i++) {
@@ -819,12 +934,11 @@ export class Scene3D {
       pos.needsUpdate = true;
     }
 
-    // Pet AI Patrol & Animation
-    if (this.petMesh) {
-      this.updatePet(delta, time);
-    }
+    // Update all roaming pets
+    this.petInstances.forEach((petMesh, idx) => {
+      this.updateSinglePet(petMesh, delta, time, idx);
+    });
 
-    // Tree Foliage Wind Sway
     this.treesGroup.children.forEach(treeGroup => {
       treeGroup.children.forEach(child => {
         if (child.userData && child.userData.isFoliage) {
@@ -835,7 +949,6 @@ export class Scene3D {
       });
     });
 
-    // Floating Particles
     if (this.particlesMesh) {
       const pos = this.particlesMesh.geometry.attributes.position;
       for (let i = 0; i < pos.count; i++) {
@@ -846,7 +959,6 @@ export class Scene3D {
       pos.needsUpdate = true;
     }
 
-    // Rain
     if (this.rainGroup.visible && this.rainMesh) {
       const rPos = this.rainMesh.geometry.attributes.position;
       for (let i = 0; i < rPos.count; i++) {
@@ -854,7 +966,7 @@ export class Scene3D {
         if (ry < 0) {
           ry = 8.0;
           if (Math.random() < 0.04) {
-            this.triggerWaterRipple(-0.35 + (Math.random() - 0.5) * 1.2, -0.65 + (Math.random() - 0.5) * 1.2);
+            this.triggerWaterRipple(-0.4 + (Math.random() - 0.5) * 1.2, -0.9 + (Math.random() - 0.5) * 1.2);
           }
         }
         rPos.setY(i, ry);
@@ -862,7 +974,6 @@ export class Scene3D {
       rPos.needsUpdate = true;
     }
 
-    // Water Ripples Fade
     for (let i = this.waterRipples.length - 1; i >= 0; i--) {
       const rip = this.waterRipples[i];
       rip.scale += delta * 1.8;
@@ -878,73 +989,71 @@ export class Scene3D {
     this.renderer.render(this.scene, this.camera);
   }
 
-  updatePet(delta, time) {
-    const s = this.petState;
+  updateSinglePet(petMesh, delta, time, idx) {
+    const s = petMesh.userData.aiState;
+    if (!s) return;
 
     if (s.state === 'jumping') {
       s.jumpProgress += delta * 4;
       const jumpHeight = Math.sin(s.jumpProgress * Math.PI) * 0.35;
-      this.petMesh.position.y = 0.28 + Math.max(0, jumpHeight);
-      this.petMesh.rotation.y += delta * 8; // happy spin
+      petMesh.position.y = 0.28 + Math.max(0, jumpHeight);
+      petMesh.rotation.y += delta * 8;
       if (s.jumpProgress >= 1) {
         s.state = 'idle';
         s.timer = 2.0;
-        this.petMesh.position.y = 0.28;
+        petMesh.position.y = 0.28;
       }
       return;
     }
 
     s.timer -= delta;
     if (s.timer <= 0) {
-      // Pick next state
       if (s.state === 'idle' || s.state === 'sitting') {
-        // Pick new random waypoint near grass/tent/campfire
         const waypoints = [
-          { x: -1.2, z: 0.3 },
-          { x: -0.5, z: 0.8 },
-          { x: 0.3, z: -0.2 },
-          { x: -1.6, z: 0.2 },
-          { x: 0.1, z: 1.1 }
+          { x: -0.6, z: 0.2 },
+          { x: 0.5, z: -0.1 },
+          { x: -0.2, z: 1.1 },
+          { x: 1.1, z: 0.8 },
+          { x: -1.3, z: 0.1 },
+          { x: 0.8, z: -0.8 },
+          { x: -0.1, z: -0.3 }
         ];
-        const next = waypoints[Math.floor(Math.random() * waypoints.length)];
+        const next = waypoints[(Math.floor(Math.random() * waypoints.length) + idx) % waypoints.length];
         s.targetX = next.x;
         s.targetZ = next.z;
         s.state = 'walking';
-        s.timer = 4.0;
+        s.timer = 4.5;
       } else {
         s.state = Math.random() > 0.4 ? 'sitting' : 'idle';
         s.timer = 3.0 + Math.random() * 4.0;
       }
     }
 
-    // Walking movement
     if (s.state === 'walking') {
       const dx = s.targetX - s.x;
       const dz = s.targetZ - s.z;
       const dist = Math.sqrt(dx * dx + dz * dz);
 
       if (dist > 0.05) {
-        const speed = 0.35 * delta;
+        const speed = s.speed * delta;
         s.x += (dx / dist) * speed;
         s.z += (dz / dist) * speed;
         s.rotation = Math.atan2(dx, dz);
-        // Little trotting bob
-        this.petMesh.position.y = 0.28 + Math.abs(Math.sin(time * 10)) * 0.03;
+        petMesh.position.y = 0.28 + Math.abs(Math.sin(time * 10 + idx)) * 0.03;
       } else {
         s.state = 'idle';
         s.timer = 2.5;
-        this.petMesh.position.y = 0.28;
+        petMesh.position.y = 0.28;
       }
     }
 
-    // Tail swishing
-    if (this.petTail) {
-      this.petTail.rotation.y = Math.sin(time * 6) * 0.35;
+    if (petMesh.userData.tail) {
+      petMesh.userData.tail.rotation.y = Math.sin(time * 6 + idx) * 0.35;
     }
 
-    this.petMesh.position.x = s.x;
-    this.petMesh.position.z = s.z;
-    this.petMesh.rotation.y = s.rotation;
+    petMesh.position.x = s.x;
+    petMesh.position.z = s.z;
+    petMesh.rotation.y = s.rotation;
   }
 
   onResize() {
