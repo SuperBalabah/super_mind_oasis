@@ -1,10 +1,11 @@
 // Service Worker for Super Mind Oasis
-const CACHE_NAME = 'super-mind-oasis-v1';
+const CACHE_NAME = 'super-mind-oasis-v2';
 
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
+  './favicon.png',
   './apple-touch-icon.png',
   './icon-192.png',
   './icon-512.png'

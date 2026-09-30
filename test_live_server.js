@@ -168,6 +168,30 @@ async function run() {
     assert(false, `Failed to verify mobile enhancements: ${e.message}`);
   }
 
+  // 10. Test Zen Island app icon & PWA manifest assets
+  try {
+    const iconRes = await fetch('http://localhost:5173/apple-touch-icon.png');
+    assert(iconRes.ok, 'Vite dev server serves apple-touch-icon.png (HTTP 200)');
+
+    const icon192Res = await fetch('http://localhost:5173/icon-192.png');
+    assert(icon192Res.ok, 'Vite dev server serves icon-192.png (HTTP 200)');
+
+    const icon512Res = await fetch('http://localhost:5173/icon-512.png');
+    assert(icon512Res.ok, 'Vite dev server serves icon-512.png (HTTP 200)');
+
+    const favRes = await fetch('http://localhost:5173/favicon.png');
+    assert(favRes.ok, 'Vite dev server serves favicon.png (HTTP 200)');
+
+    const manifestRes = await fetch('http://localhost:5173/manifest.json');
+    assert(manifestRes.ok, 'Vite dev server serves manifest.json (HTTP 200)');
+
+    const swRes = await fetch('http://localhost:5173/sw.js');
+    const swCode = await swRes.text();
+    assert(swCode.includes('super-mind-oasis-v2'), 'sw.js uses super-mind-oasis-v2 cache version for instant icon refresh');
+  } catch (e) {
+    assert(false, `Failed to verify icon assets: ${e.message}`);
+  }
+
   console.log(`\nResult: ${passCount} Passed, ${failCount} Failed.`);
   if (failCount > 0) process.exit(1);
 }
