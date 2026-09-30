@@ -348,6 +348,7 @@ html, body {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
+  cursor: pointer;
 }
 
 .modal-overlay.active {
@@ -356,6 +357,7 @@ html, body {
 }
 
 .modal-dialog {
+  cursor: default;
   width: 100%;
   max-width: 480px;
   max-height: 86vh;

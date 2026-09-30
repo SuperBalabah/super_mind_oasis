@@ -1273,6 +1273,10 @@ export class Scene3D {
             if (this.onTreeSelect) this.onTreeSelect(hitObj.userData.treeData);
             return;
           }
+        } else {
+          // Clicked outside trees on blank island / scene: deselect
+          this.highlightTree(null);
+          if (this.onBlankTap) this.onBlankTap();
         }
 
         if (this.waterMesh) {

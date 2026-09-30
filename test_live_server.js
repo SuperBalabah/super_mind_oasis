@@ -72,7 +72,7 @@ async function run() {
     assert(code.includes('onPetHoldStart'), 'app.js handles onPetHoldStart');
     assert(code.includes('onPetTapped'), 'app.js handles onPetTapped');
     assert(!code.includes('onPetTapped(petData) {\n    sound.playPetChirp();\n    this.showToast'), 'onPetTapped does NOT show banner toast');
-    assert(code.includes('次陪伴'), 'app.js displays organic "次陪伴"');
+    assert(code.includes('溫暖陪伴'), 'app.js displays organic toast');
   } catch (e) {
     assert(false, `Failed to fetch app.js: ${e.message}`);
   }
@@ -107,6 +107,26 @@ async function run() {
     assert(appCode.includes('btn-delete-ring'), 'app.js handles ring deletion');
   } catch (e) {
     assert(false, `Failed to verify delete & reset: ${e.message}`);
+  }
+
+  // 7. Test universal backdrop tap & care label refinement
+  try {
+    const htmlRes = await fetch('http://localhost:5173/');
+    const html = await htmlRes.text();
+    assert(html.includes('累積陪伴：'), 'Live HTML displays refined [累積陪伴：] label');
+    assert(!html.includes('長按小動物直接餵食陪伴'), 'Live HTML removed short-press/long-press notes completely');
+
+    const appRes = await fetch('http://localhost:5173/src/app.js');
+    const appCode = await appRes.text();
+    assert(appCode.includes('onBlankTap'), 'app.js connects scene onBlankTap to closeTreeCard');
+    assert(appCode.includes('modal-overlay') && appCode.includes("e.target === overlay"), 'app.js binds backdrop click to close any open modal');
+    assert(appCode.includes('${pet.careCount || 1} 次`'), 'app.js formats pet care count as clean "X 次"');
+
+    const sceneRes = await fetch('http://localhost:5173/src/scene3d.js');
+    const sceneCode = await sceneRes.text();
+    assert(sceneCode.includes('this.onBlankTap()'), 'scene3d.js triggers onBlankTap when tapping empty terrain/water');
+  } catch (e) {
+    assert(false, `Failed to verify backdrop dismiss: ${e.message}`);
   }
 
   console.log(`\nResult: ${passCount} Passed, ${failCount} Failed.`);

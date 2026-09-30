@@ -127,6 +127,13 @@ class App {
       sound.playFeedingNibble();
     };
 
+    this.scene.onBlankTap = () => {
+      if (this.selectedTree) {
+        this.closeTreeCard();
+        sound.playWaterDrop();
+      }
+    };
+
     this.scene.updateTrees(Storage.getTrees());
     this.scene.updatePets(Storage.getPets());
   }
@@ -323,6 +330,30 @@ class App {
 
     this.dom.btnPetDetailClose.addEventListener('click', () => this.closeModal(this.dom.modalPetDetail));
     this.dom.btnPetReleaseAction.addEventListener('click', () => this.releaseCurrentPet());
+
+    // Universal backdrop click: clicking outside the dialog on the blank area closes the modal
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          this.closeModal(overlay);
+          sound.playWaterDrop();
+        }
+      });
+    });
+
+    // Keyboard ESC to dismiss active modal or tree card
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const activeModal = document.querySelector('.modal-overlay.active');
+        if (activeModal) {
+          this.closeModal(activeModal);
+          sound.playWaterDrop();
+        } else if (this.selectedTree) {
+          this.closeTreeCard();
+          sound.playWaterDrop();
+        }
+      }
+    });
   }
 
   setupHoldToNurtureInteraction() {
@@ -501,7 +532,7 @@ class App {
     this.dom.petDetailName.textContent = pet.name;
     this.dom.petDetailSpecies.textContent = sp.name;
     this.dom.petDetailHabit.textContent = pet.habitTitle;
-    this.dom.petDetailCare.textContent = `${pet.careCount || 1} 次陪伴`;
+    this.dom.petDetailCare.textContent = `${pet.careCount || 1} 次`;
     this.openModal(this.dom.modalPetDetail);
   }
 
