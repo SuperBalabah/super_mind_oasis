@@ -66,16 +66,27 @@ class App {
       ringsContainer: document.getElementById('rings-container'),
       btnExportBackup: document.getElementById('btn-export-backup'),
       inputImportBackup: document.getElementById('input-import-backup'),
-      btnResetBlank: document.getElementById('btn-reset-blank'),
 
-      // Multi-Pet Habit Modal
-      modalHabit: document.getElementById('modal-habit'),
-      btnHabitClose: document.getElementById('btn-habit-close'),
-      petsListContainer: document.getElementById('pets-list-container'),
+      // Top-Right Grayscale Pet Widget
+      topPetsWidget: document.getElementById('top-pets-widget'),
+
+      // Adopt Modal (Bottom nav pet icon)
+      modalAdopt: document.getElementById('modal-adopt'),
+      btnAdoptCancel: document.getElementById('btn-adopt-cancel'),
       petSpeciesPicker: document.getElementById('pet-species-picker'),
       formAdoptPet: document.getElementById('form-adopt-pet'),
       adoptPetName: document.getElementById('adopt-pet-name'),
-      adoptPetHabit: document.getElementById('adopt-pet-habit')
+      adoptPetHabit: document.getElementById('adopt-pet-habit'),
+
+      // Pet Detail & Release Modal (Top-right pill click)
+      modalPetDetail: document.getElementById('modal-pet-detail'),
+      petDetailAvatar: document.getElementById('pet-detail-avatar'),
+      petDetailName: document.getElementById('pet-detail-name'),
+      petDetailSpecies: document.getElementById('pet-detail-species'),
+      petDetailHabit: document.getElementById('pet-detail-habit'),
+      petDetailCare: document.getElementById('pet-detail-care'),
+      btnPetReleaseAction: document.getElementById('btn-pet-release-action'),
+      btnPetDetailClose: document.getElementById('btn-pet-detail-close')
     };
 
     this.init();
@@ -86,6 +97,7 @@ class App {
     this.init3DScene();
     this.renderTreePicker();
     this.renderPetSpeciesPicker();
+    this.renderTopPetsWidget();
     this.setupEventListeners();
     this.applySettings();
 
@@ -283,6 +295,7 @@ class App {
           alert('備份還原成功！小島已同步更新。');
           this.scene.updateTrees(Storage.getTrees());
           this.scene.updatePets(Storage.getPets());
+          this.renderTopPetsWidget();
           this.openArchiveModal();
         } else {
           alert('備份格式不正確，請確認檔案內容。');
@@ -291,38 +304,25 @@ class App {
       reader.readAsText(file);
     });
 
-    // Reset All Island Data to Blank Canvas
-    if (this.dom.btnResetBlank) {
-      this.dom.btnResetBlank.addEventListener('click', () => {
-        if (confirm('確定要將小島歸零重置為全新空白狀態嗎？\n所有預設與現存的課題樹、寵物夥伴和歷史年輪都將清空。')) {
-          Storage.clearAllToBlank();
-          this.closeTreeCard();
-          this.selectedTree = null;
-          this.scene.updateTrees([]);
-          this.scene.updatePets([]);
-          this.renderPetsList();
-          this.openArchiveModal();
-          sound.playWaterDrop();
-          this.showToast('🍃 已成功將心靈綠洲歸零重置為全新空白！');
-        }
-      });
-    }
-
-    // Multi-Pet Modal
-    this.dom.btnHabitOpen.addEventListener('click', () => this.openHabitModal());
-    this.dom.btnHabitClose.addEventListener('click', () => this.closeModal(this.dom.modalHabit));
+    // Pet Modal Listeners
+    this.dom.btnHabitOpen.addEventListener('click', () => this.openAdoptModal());
+    this.dom.btnAdoptCancel.addEventListener('click', () => this.closeModal(this.dom.modalAdopt));
 
     this.dom.formAdoptPet.addEventListener('submit', (e) => {
       e.preventDefault();
+      const species = this.selectedPetSpecies;
       const name = this.dom.adoptPetName.value;
       const habit = this.dom.adoptPetHabit.value;
-      Storage.addPet(this.selectedPetSpecies, name, habit);
+      const newPet = Storage.addPet(species, name, habit);
       sound.playPetChirp();
-      this.dom.adoptPetName.value = '';
-      this.dom.adoptPetHabit.value = '';
+      this.closeModal(this.dom.modalAdopt);
       this.scene.updatePets(Storage.getPets());
-      this.renderPetsList();
+      this.renderTopPetsWidget();
+      this.showToast(`✨ 歡迎【${newPet.name}】來到心靈綠洲！`);
     });
+
+    this.dom.btnPetDetailClose.addEventListener('click', () => this.closeModal(this.dom.modalPetDetail));
+    this.dom.btnPetReleaseAction.addEventListener('click', () => this.releaseCurrentPet());
   }
 
   setupHoldToNurtureInteraction() {
@@ -460,60 +460,63 @@ class App {
     });
   }
 
-  renderPetsList() {
+  // --- TOP-RIGHT GRAYSCALE PET WIDGET & DETAILS ---
+  renderTopPetsWidget() {
     const pets = Storage.getPets();
-    const container = this.dom.petsListContainer;
+    const container = this.dom.topPetsWidget;
+    if (!container) return;
     container.innerHTML = '';
-
-    if (pets.length === 0) {
-      container.innerHTML = '<div style="font-size:0.8rem; color:#8ea0b0; padding:10px 0;">島上目前沒有寵物，請在下方認養你的第一個習慣夥伴。</div>';
-      return;
-    }
 
     pets.forEach(pet => {
       const sp = PET_SPECIES[pet.species] || PET_SPECIES.sheep;
-      const card = document.createElement('div');
-      card.className = 'pet-card-item';
-      card.innerHTML = `
-        <div class="pet-card-left">
-          <div class="pet-card-title">${pet.name} · ${sp.name}</div>
-          <div class="pet-card-habit">守護習慣：${pet.habitTitle}</div>
-          <div style="font-size:0.7rem; color:rgba(255,255,255,0.4); margin-top:2px;">可在島上長按小動物直接餵食陪伴</div>
-        </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <div class="pet-card-streak" title="累計陪伴次數">${pet.careCount || 1} 次陪伴</div>
-          <button class="btn-ghost btn-feed-pet" style="padding:6px 12px; font-size:0.75rem;">
-            餵食陪伴
-          </button>
-          <button class="btn-ghost-danger btn-release-pet" style="padding:6px 10px; font-size:0.75rem;" title="放生夥伴回歸自然">
-            放生
-          </button>
-        </div>
+      const pill = document.createElement('div');
+      pill.className = 'top-pet-pill';
+      pill.title = `點擊查看【${pet.name}】詳情或放生`;
+      pill.innerHTML = `
+        <div class="top-pet-avatar">${sp.svgAvatar || ''}</div>
+        <span class="top-pet-name">${pet.name}</span>
       `;
-
-      const feedBtn = card.querySelector('.btn-feed-pet');
-      feedBtn.addEventListener('click', () => {
-        Storage.nurturePet(pet.id);
-        sound.playFeedingNibble();
-        const petMesh = this.scene.petInstances.find(p => p.userData.petId === pet.id);
-        if (petMesh) this.scene.feedPet(petMesh);
-        this.showToast(`✨ 陪伴【${pet.name}】完成「${pet.habitTitle}」`);
-        this.renderPetsList();
+      pill.addEventListener('click', () => {
+        sound.playPetChirp();
+        this.openPetDetailModal(pet);
       });
-
-      const releaseBtn = card.querySelector('.btn-release-pet');
-      releaseBtn.addEventListener('click', () => {
-        if (confirm(`確定要放生【${pet.name}】嗎？小夥伴將告別綠洲回歸大自然。`)) {
-          Storage.deletePet(pet.id);
-          this.scene.updatePets(Storage.getPets());
-          sound.playPetChirp();
-          this.showToast(`🍃【${pet.name}】已回歸山林大自然`);
-          this.renderPetsList();
-        }
-      });
-
-      container.appendChild(card);
+      container.appendChild(pill);
     });
+  }
+
+  openAdoptModal() {
+    this.renderPetSpeciesPicker();
+    this.dom.adoptPetName.value = '';
+    this.dom.adoptPetHabit.value = '';
+    const sp = PET_SPECIES[this.selectedPetSpecies] || PET_SPECIES.sheep;
+    this.dom.adoptPetName.placeholder = `夥伴名字（預設：${sp.name}）`;
+    this.dom.adoptPetHabit.placeholder = `所守護的習慣（例如：${sp.defaultHabit}）`;
+    this.openModal(this.dom.modalAdopt);
+  }
+
+  openPetDetailModal(pet) {
+    this.currentInspectingPet = pet;
+    const sp = PET_SPECIES[pet.species] || PET_SPECIES.sheep;
+    this.dom.petDetailAvatar.innerHTML = sp.svgAvatar || '';
+    this.dom.petDetailName.textContent = pet.name;
+    this.dom.petDetailSpecies.textContent = sp.name;
+    this.dom.petDetailHabit.textContent = pet.habitTitle;
+    this.dom.petDetailCare.textContent = `${pet.careCount || 1} 次陪伴`;
+    this.openModal(this.dom.modalPetDetail);
+  }
+
+  releaseCurrentPet() {
+    if (!this.currentInspectingPet) return;
+    const pet = this.currentInspectingPet;
+    if (confirm(`確定要放生【${pet.name}】嗎？小夥伴將告別綠洲回歸大自然。`)) {
+      Storage.deletePet(pet.id);
+      this.scene.updatePets(Storage.getPets());
+      this.renderTopPetsWidget();
+      this.closeModal(this.dom.modalPetDetail);
+      sound.playPetChirp();
+      this.showToast(`🍃【${pet.name}】已回歸山林大自然`);
+      this.currentInspectingPet = null;
+    }
   }
 
   // Pet in-world short-tap greeting (Gentle curious head raise, zero annoying banners!)
@@ -529,12 +532,7 @@ class App {
       if ('vibrate' in navigator) navigator.vibrate([30, 45, 30]);
     } catch (e) {}
     this.showToast(`✨ 已溫暖陪伴【${petData.name}】· 守護「${petData.habitTitle}」`);
-    this.renderPetsList();
-  }
-
-  openHabitModal() {
-    this.renderPetsList();
-    this.openModal(this.dom.modalHabit);
+    this.renderTopPetsWidget();
   }
 
   // --- VISUAL TREE GALLERY IN ARCHIVE (MATCHING EXACT TREE ART) ---

@@ -50,6 +50,9 @@
       </button>
     </nav>
 
+    <!-- Top-Right Grayscale Semi-Transparent Pet Widget -->
+    <div id="top-pets-widget" class="top-pets-widget" title="點擊查看夥伴資訊或放生"></div>
+
     <!-- Floating Center Hint -->
     <div class="center-hint" id="center-hint">
       單指旋轉 · 點擊樹木傾聽思緒 · 長按寵物餵食陪伴
@@ -215,7 +218,6 @@
             導入資料備份
             <input type="file" id="input-import-backup" accept=".json" style="display: none;">
           </label>
-          <button type="button" class="backup-link-btn danger-link" id="btn-reset-blank">歸零重置小島</button>
         </div>
 
         <div class="dialog-buttons" style="margin-top: 14px;">
@@ -224,35 +226,62 @@
       </div>
     </div>
 
-    <!-- Modal: Multi-Pet Habit Management (Organic, Zero-Pressure) -->
-    <div id="modal-habit" class="modal-overlay">
+    <!-- Modal: Adopt New Pet (Directly from bottom nav pet icon) -->
+    <div id="modal-adopt" class="modal-overlay">
       <div class="modal-dialog">
-        <h3 class="modal-header-title">習慣守護夥伴</h3>
+        <h3 class="modal-header-title">認養習慣守護夥伴</h3>
         <p class="modal-header-desc">
-          養一隻寵物，就是在養一個好習慣。小動物們在島上靜靜陪伴你；你可以在小島上<strong>長按小動物直接餵食關照</strong>，短按向牠們打招呼，完全不需天天打卡的焦慮壓力。
+          挑選一隻心愛的小動物踏上小島，為你守護一項日常生活中的好習慣。小動物們在島上靜靜陪伴你，隨心餵食無壓力。
         </p>
 
-        <div class="pets-list-container" id="pets-list-container"></div>
+        <div class="field-label" style="margin-bottom: 8px;">選擇夥伴種族：</div>
+        <div class="pet-species-picker-grid" id="pet-species-picker"></div>
 
-        <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; margin-top: 10px;">
-          <div class="field-label" style="margin-bottom: 8px;">認養新夥伴：</div>
-          <div class="pet-species-picker-grid" id="pet-species-picker"></div>
+        <form id="form-adopt-pet">
+          <div class="form-field">
+            <label class="field-label" for="adopt-pet-name">夥伴專屬暱稱</label>
+            <input type="text" id="adopt-pet-name" class="field-input" placeholder="夥伴名字（例如：白雲綿羊、小狐...）" maxlength="20" required>
+          </div>
+          <div class="form-field">
+            <label class="field-label" for="adopt-pet-habit">所守護的日常習慣</label>
+            <input type="text" id="adopt-pet-habit" class="field-input" placeholder="所守護的習慣（例如：每日晨讀、每日喝水...）" maxlength="30" required>
+          </div>
+          <div class="dialog-buttons" style="margin-top: 20px;">
+            <button type="button" class="btn-ghost" id="btn-adopt-cancel">先等等</button>
+            <button type="submit" class="btn-amber">確認認養至小島</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
-          <form id="form-adopt-pet">
-            <div class="form-field">
-              <input type="text" id="adopt-pet-name" class="field-input" placeholder="夥伴名字（例如：白雲綿羊、小狐...）" maxlength="20" required>
-            </div>
-            <div class="form-field">
-              <input type="text" id="adopt-pet-habit" class="field-input" placeholder="所守護的習慣（例如：每日晨讀、每日喝水...）" maxlength="30" required>
-            </div>
-            <div style="text-align: right;">
-              <button type="submit" class="btn-ghost" style="padding: 8px 16px;">確認認養至小島</button>
-            </div>
-          </form>
+    <!-- Modal: Pet Detail & Release (Triggered by Top-Right Grayscale Pet Widget) -->
+    <div id="modal-pet-detail" class="modal-overlay">
+      <div class="modal-dialog">
+        <div class="pet-detail-header" style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
+          <div id="pet-detail-avatar" class="pet-detail-avatar-box"></div>
+          <div>
+            <h3 class="modal-header-title" id="pet-detail-name" style="margin-bottom: 4px;">小夥伴</h3>
+            <div class="card-tag" id="pet-detail-species">雲朵綿羊</div>
+          </div>
         </div>
 
-        <div class="dialog-buttons">
-          <button type="button" class="btn-amber" id="btn-habit-close" style="width: 100%;">回到小島</button>
+        <div class="pet-detail-body" style="margin: 18px 0;">
+          <div class="card-worry-quote" style="border-left-color: var(--accent-gold); margin-bottom: 14px;">
+            <div style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 4px;">守護習慣</div>
+            <div id="pet-detail-habit" style="color: #ffffff; font-weight: 500; font-size: 0.95rem;">每日深呼吸 5 分鐘</div>
+          </div>
+
+          <div class="card-stats" style="margin-bottom: 0;">
+            <div>累計溫暖陪伴：<strong id="pet-detail-care" style="color: var(--accent-gold); font-size: 0.95rem;">5 次</strong></div>
+          </div>
+          <p style="font-size: 0.74rem; color: #8ea0b0; margin-top: 10px; line-height: 1.5;">
+            在小島上<strong>長按小動物直接餵食陪伴</strong>，短按輕輕抬頭打招呼。
+          </p>
+        </div>
+
+        <div class="dialog-buttons" style="display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" class="btn-ghost-danger" id="btn-pet-release-action" style="padding: 9px 18px;">放生夥伴</button>
+          <button type="button" class="btn-amber" id="btn-pet-detail-close" style="padding: 9px 24px;">回到小島</button>
         </div>
       </div>
     </div>

@@ -56,31 +56,36 @@ export const PET_SPECIES = {
     id: 'sheep',
     name: '雲朵綿羊',
     description: '軟綿綿的白雲小羊，性情溫馴，喜歡在草地安靜咀嚼放空。',
-    defaultHabit: '每日深呼吸靜坐 5 分鐘'
+    defaultHabit: '每日深呼吸靜坐 5 分鐘',
+    svgAvatar: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none"><circle cx="12" cy="12" r="7.5" fill="#f0ede6"/><circle cx="9" cy="11.5" r="1" fill="#222"/><circle cx="15" cy="11.5" r="1" fill="#222"/><path d="M11 14.5c.5.5 1.5.5 2 0" stroke="#ff9999" stroke-width="1.2" stroke-linecap="round"/><ellipse cx="5.5" cy="11" rx="2" ry="1.5" fill="#e8dfd5"/><ellipse cx="18.5" cy="11" rx="2" ry="1.5" fill="#e8dfd5"/></svg>`
   },
   fox: {
     id: 'fox',
     name: '星光靈狐',
     description: '機敏而靈動的小狐狸，披著夕陽的赤橘毛色，在島上守護你的習慣。',
-    defaultHabit: '每日睡前閱讀 15 分鐘'
+    defaultHabit: '每日睡前閱讀 15 分鐘',
+    svgAvatar: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none"><path d="M12 18L6 8h12l-6 10z" fill="#d96628"/><path d="M6 8L3.5 3.5 8 6.5 6 8zM18 8l2.5-4.5L16 6.5 18 8z" fill="#b84d16"/><polygon points="12,18 9,13 15,13" fill="#ffffff"/><circle cx="9.5" cy="10" r="1" fill="#222"/><circle cx="14.5" cy="10" r="1" fill="#222"/><circle cx="12" cy="17" r="1" fill="#111"/></svg>`
   },
   shiba: {
     id: 'shiba',
     name: '暖陽柴犬',
     description: '充滿元氣與陪伴感的忠誠柴犬，總是笑瞇瞇地迎接著你的每一次餵食。',
-    defaultHabit: '每日晨間慢跑 2 公里'
+    defaultHabit: '每日晨間慢跑 2 公里',
+    svgAvatar: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none"><circle cx="12" cy="12" r="7.5" fill="#c48a42"/><path d="M6 7L4 3l4.5 2.5L6 7zM18 7l2-4-4.5 2.5L18 7z" fill="#a46e2e"/><path d="M8 12c1.5 2.5 6.5 2.5 8 0-1 4-7 4-8 0z" fill="#ffffff"/><circle cx="9" cy="8.5" r="0.8" fill="#ffffff"/><circle cx="15" cy="8.5" r="0.8" fill="#ffffff"/><circle cx="9.5" cy="11" r="1" fill="#222"/><circle cx="14.5" cy="11" r="1" fill="#222"/><ellipse cx="12" cy="13.5" rx="1.2" ry="0.8" fill="#222"/></svg>`
   },
   cat: {
     id: 'cat',
     name: '玄夜靈貓',
     description: '優雅而深沉的黑貓，帶著一雙清澈琉璃眼，安靜依偎在帳篷與營火旁。',
-    defaultHabit: '每日喝足 2000cc 溫水'
+    defaultHabit: '每日喝足 2000cc 溫水',
+    svgAvatar: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none"><circle cx="12" cy="13" r="7" fill="#22272e"/><polygon points="6,9 4,3 9,6" fill="#22272e"/><polygon points="18,9 20,3 15,6" fill="#22272e"/><polygon points="5.5,5.5 5,4 7,5" fill="#ffb3ba"/><polygon points="18.5,5.5 19,4 17,5" fill="#ffb3ba"/><ellipse cx="9" cy="12" rx="1.2" ry="1.6" fill="#5ce69e"/><ellipse cx="15" cy="12" rx="1.2" ry="1.6" fill="#5ce69e"/><line x1="9" y1="10.8" x2="9" y2="13.2" stroke="#111" stroke-width="0.8"/><line x1="15" y1="10.8" x2="15" y2="13.2" stroke="#111" stroke-width="0.8"/><circle cx="12" cy="14.5" r="0.6" fill="#ffb3ba"/></svg>`
   },
   deer: {
     id: 'deer',
     name: '森林小鹿',
     description: '踏著輕盈步伐的初生林鹿，象徵著輕柔而堅定的持續力量。',
-    defaultHabit: '每日寫下一件感恩小事'
+    defaultHabit: '每日寫下一件感恩小事',
+    svgAvatar: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none"><circle cx="12" cy="13" r="6.8" fill="#9e6938"/><path d="M6 7l-2-3 3 1.5M18 7l2-3-3 1.5" stroke="#68421d" stroke-width="1.4" stroke-linecap="round"/><ellipse cx="9" cy="12" rx="1.2" ry="1.5" fill="#222"/><ellipse cx="15" cy="12" rx="1.2" ry="1.5" fill="#222"/><circle cx="9.3" cy="11.5" r="0.4" fill="#fff"/><circle cx="15.3" cy="11.5" r="0.4" fill="#fff"/><ellipse cx="12" cy="15.5" rx="2" ry="1.2" fill="#e6d5c3"/><ellipse cx="12" cy="15" rx="0.8" ry="0.5" fill="#222"/></svg>`
   }
 };
 

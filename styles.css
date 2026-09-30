@@ -787,3 +787,80 @@ html, body {
   background: rgba(255, 255, 255, 0.16);
   border-radius: 4px;
 }
+
+/* --- TOP-RIGHT GRAYSCALE SEMI-TRANSPARENT PET ROSTER WIDGET --- */
+.top-pets-widget {
+  position: fixed;
+  top: 64px;
+  right: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  align-items: flex-end;
+  z-index: 15;
+  pointer-events: auto;
+}
+
+.top-pet-pill {
+  background: rgba(14, 20, 27, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 20px;
+  padding: 3px 10px 3px 5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  opacity: 0.72;
+  filter: grayscale(0.85);
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.top-pet-pill:hover,
+.top-pet-pill:active {
+  opacity: 1;
+  filter: grayscale(0);
+  background: rgba(18, 25, 33, 0.85);
+  border-color: rgba(237, 210, 133, 0.35);
+  transform: translateX(-3px);
+}
+
+.top-pet-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.top-pet-name {
+  font-size: 0.73rem;
+  color: #d2dde6;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.pet-detail-avatar-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pet-detail-avatar-box svg {
+  width: 36px;
+  height: 36px;
+}

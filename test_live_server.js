@@ -23,7 +23,9 @@ async function run() {
     assert(res.ok, 'Vite dev server is serving http://localhost:5173/ successfully (HTTP 200)');
     const html = await res.text();
     assert(html.includes('id="floating-toast"'), 'Live HTML contains #floating-toast HUD');
-    assert(html.includes('id="modal-habit"'), 'Live HTML contains #modal-habit modal');
+    assert(html.includes('id="modal-adopt"'), 'Live HTML contains #modal-adopt modal');
+    assert(html.includes('id="modal-pet-detail"'), 'Live HTML contains #modal-pet-detail modal');
+    assert(html.includes('id="top-pets-widget"'), 'Live HTML contains #top-pets-widget');
     assert(!html.includes('已打卡'), 'Live HTML contains ZERO occurrences of "已打卡"');
     assert(html.includes('長按寵物餵食陪伴'), 'Live HTML center hint instructs long-press feeding');
   } catch (e) {
@@ -90,18 +92,18 @@ async function run() {
     const htmlRes = await fetch('http://localhost:5173/');
     const html = await htmlRes.text();
     assert(html.includes('id="btn-tree-delete"'), 'Live HTML contains #btn-tree-delete button');
-    assert(html.includes('id="btn-reset-blank"'), 'Live HTML contains #btn-reset-blank button');
+    assert(!html.includes('id="btn-reset-blank"'), 'Live HTML correctly removed #btn-reset-blank as requested');
 
     const storageRes = await fetch('http://localhost:5173/src/storage.js');
     const storageCode = await storageRes.text();
     assert(storageCode.includes('deleteTree(treeId)'), 'storage.js includes deleteTree method');
     assert(storageCode.includes('deletePet(petId)'), 'storage.js includes deletePet method');
     assert(storageCode.includes('deleteRing(ringId)'), 'storage.js includes deleteRing method');
-    assert(storageCode.includes('clearAllToBlank()'), 'storage.js includes clearAllToBlank method');
 
     const appRes = await fetch('http://localhost:5173/src/app.js');
     const appCode = await appRes.text();
-    assert(appCode.includes('btn-release-pet'), 'app.js handles pet release');
+    assert(appCode.includes('renderTopPetsWidget'), 'app.js renders top-right pet widget');
+    assert(appCode.includes('releaseCurrentPet'), 'app.js handles pet release');
     assert(appCode.includes('btn-delete-ring'), 'app.js handles ring deletion');
   } catch (e) {
     assert(false, `Failed to verify delete & reset: ${e.message}`);
