@@ -19,8 +19,8 @@
 - [x] 8. 驗證與自動化構建 <!-- id: 8 -->
   - [x] 執行 `npm run build` 與 Node.js 21 項自動化斷言驗證通過
   - [x] Git commit 並 push 至 GitHub master 分支
-- [ ] 9. GitHub Pages 自動化佈署與網址確認 <!-- id: 9 -->
+- [x] 9. GitHub Pages 自動化佈署與網址確認 <!-- id: 9 -->
   - [x] 設定 GitHub Pages 來源為 GitHub Actions Workflow
   - [x] 配置 `vite.config.js` 的 `base: './'` 與相對靜態路徑
   - [x] 建立 `.github/workflows/deploy.yml` 自動打包與發布工作流
-  - [ ] Push 至 master 觸發 GitHub Actions 佈署並驗證外網存取正常
+  - [x] Push 至 master 觸發 GitHub Actions 佈署並驗證外網存取正常 (HTTP 200 OK)
