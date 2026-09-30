@@ -23,7 +23,8 @@
 
 html, body {
   width: 100%;
-  height: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
   overflow: hidden;
   background-color: var(--bg-deep);
   color: var(--text-primary);
@@ -34,7 +35,8 @@ html, body {
 #app {
   position: relative;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
+  min-height: 100dvh;
   overflow: hidden;
 }
 
@@ -47,16 +49,17 @@ html, body {
   z-index: 1;
 }
 
-/* --- BORDERLESS MINIMAL TOP UTILITIES (No ugly circles!) --- */
+/* --- BORDERLESS MINIMAL TOP UTILITIES (Placed on TOP LEFT to never overlap with top-right pets) --- */
 .top-controls {
   position: absolute;
   top: 0;
-  right: 0;
-  padding: max(16px, env(safe-area-inset-top)) 24px 0 0;
+  left: 0;
+  right: auto;
+  padding: max(14px, env(safe-area-inset-top)) 0 0 18px;
   display: flex;
   align-items: center;
-  gap: 18px;
-  z-index: 10;
+  gap: 16px;
+  z-index: 25;
 }
 
 .icon-btn-pure {
@@ -118,11 +121,11 @@ html, body {
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 0 20px max(28px, env(safe-area-inset-bottom)) 20px;
+  padding: 0 20px calc(env(safe-area-inset-bottom, 0px) + 24px) 20px;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 36px;
+  gap: 38px;
   z-index: 10;
   pointer-events: none;
 }
@@ -169,7 +172,7 @@ html, body {
 /* Tree Inspection Floating Card */
 .tree-floating-card {
   position: absolute;
-  bottom: max(22px, env(safe-area-inset-bottom));
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
   left: 50%;
   transform: translateX(-50%) translateY(125%);
   width: calc(100% - 32px);
@@ -359,14 +362,14 @@ html, body {
 .modal-dialog {
   cursor: default;
   width: 100%;
-  max-width: 480px;
-  max-height: 86vh;
+  max-width: 440px;
+  max-height: 86dvh;
   overflow-y: auto;
-  background: rgba(18, 25, 33, 0.94);
+  background: rgba(16, 23, 31, 0.96);
   border: 1px solid var(--glass-border);
-  border-radius: 24px;
-  padding: 24px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+  border-radius: 22px;
+  padding: 20px 18px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
   transform: scale(0.95);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -377,40 +380,40 @@ html, body {
 
 .modal-header-title {
   font-family: var(--font-serif);
-  font-size: 1.25rem;
+  font-size: 1.18rem;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: #ffffff;
 }
 
 .modal-header-desc {
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   color: var(--text-secondary);
-  line-height: 1.5;
-  margin-bottom: 20px;
+  line-height: 1.45;
+  margin-bottom: 14px;
 }
 
 .form-field {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .field-label {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 500;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
   color: #cfdbe6;
 }
 
 .field-input, .field-textarea {
   width: 100%;
-  padding: 12px 14px;
-  border-radius: 12px;
+  padding: 10px 12px;
+  border-radius: 11px;
   border: 1px solid var(--glass-border);
   background: rgba(0, 0, 0, 0.35);
   color: #ffffff;
   font-family: inherit;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   outline: none;
   transition: border-color 0.2s ease;
   user-select: text;
@@ -422,38 +425,38 @@ html, body {
 
 .field-textarea {
   resize: none;
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
-/* --- TREE TYPE SELECTOR WITH VISUAL MINIATURE ILLUSTRATIONS --- */
+/* --- TREE TYPE SELECTOR: SLEEK, UNCLUTTERED VISUAL BADGES --- */
 .tree-type-selector {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 9px;
+  margin-bottom: 14px;
 }
 
 .tree-type-item {
-  padding: 14px 12px;
-  border-radius: 16px;
+  padding: 10px 10px;
+  border-radius: 14px;
   border: 1px solid var(--glass-border);
   background: rgba(255, 255, 255, 0.03);
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
 }
 
 .tree-type-item.selected {
   border-color: var(--accent-gold);
   background: rgba(237, 210, 133, 0.12);
-  box-shadow: 0 0 14px rgba(237, 210, 133, 0.2);
+  box-shadow: 0 0 12px rgba(237, 210, 133, 0.2);
 }
 
 .tree-preview-svg {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -462,31 +465,31 @@ html, body {
 
 .tree-type-text-wrap {
   flex-grow: 1;
+  min-width: 0;
 }
 
 .type-item-name {
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: #ffffff;
+  white-space: nowrap;
 }
 
 .type-item-virtue {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--accent-gold);
+  white-space: nowrap;
 }
 
 .type-item-desc {
-  font-size: 0.68rem;
-  color: var(--text-secondary);
-  line-height: 1.35;
-  margin-top: 2px;
+  display: none; /* Hide dense 3-line paragraph so cards don't overcrowd mobile screen */
 }
 
 .dialog-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 20px;
+  margin-top: 14px;
 }
 
 .btn-ghost {

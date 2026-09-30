@@ -147,6 +147,24 @@ async function run() {
     assert(false, `Failed to verify collision avoidance: ${e.message}`);
   }
 
+  // 9. Test mobile layout fixes, inverted rotation, expanded zoom & decluttered modal
+  try {
+    const sceneRes = await fetch('http://localhost:5173/src/scene3d.js');
+    const sceneCode = await sceneRes.text();
+    assert(sceneCode.includes('this.targetRotationY -= deltaX'), 'scene3d.js inverts rotation drag direction for intuitive direct manipulation');
+    assert(sceneCode.includes('Math.min(19.0'), 'scene3d.js expands zoom range to 19.0 for full mobile island visibility');
+    assert(sceneCode.includes('initialFov = aspect < 1.0'), 'scene3d.js implements responsive portrait FOV in init()');
+    assert(sceneCode.includes('coneHeight = 1.65'), 'scene3d.js trims the island underbelly cone to prevent eating up screen height');
+
+    const cssRes = await fetch('http://localhost:5173/styles.css');
+    const cssCode = await cssRes.text();
+    assert(cssCode.includes('left: 0') && cssCode.includes('right: auto'), 'styles.css places .top-controls on top left away from pet widget');
+    assert(cssCode.includes('100dvh'), 'styles.css uses 100dvh for reliable mobile viewport height');
+    assert(cssCode.includes('.type-item-desc') && cssCode.includes('display: none;'), 'styles.css hides verbose card text to keep plant modal airy and uncluttered');
+  } catch (e) {
+    assert(false, `Failed to verify mobile enhancements: ${e.message}`);
+  }
+
   console.log(`\nResult: ${passCount} Passed, ${failCount} Failed.`);
   if (failCount > 0) process.exit(1);
 }

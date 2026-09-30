@@ -67,7 +67,13 @@ export class Scene3D {
     this.scene = new THREE.Scene();
 
     const aspect = this.container.clientWidth / this.container.clientHeight;
-    this.camera = new THREE.PerspectiveCamera(40, aspect, 0.1, 100);
+    const initialFov = aspect < 1.0 ? Math.min(68, 42 + (1.0 - aspect) * 26) : 40;
+    this.camera = new THREE.PerspectiveCamera(initialFov, aspect, 0.1, 100);
+    if (aspect < 1.0) {
+      this.zoom = 8.8;
+      this.targetZoom = 8.8;
+      this.targetRotationX = 0.32;
+    }
     this.updateCameraPosition();
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -153,22 +159,23 @@ export class Scene3D {
     topMesh.castShadow = true;
     this.islandGroup.add(topMesh);
 
-    const baseGeom = new THREE.ConeGeometry(radius * 0.94, 3.2, 18, 5);
+    const coneHeight = 1.65;
+    const baseGeom = new THREE.ConeGeometry(radius * 0.94, coneHeight, 18, 5);
     baseGeom.rotateX(Math.PI);
     const basePos = baseGeom.attributes.position;
     for (let i = 0; i < basePos.count; i++) {
       const y = basePos.getY(i);
       if (y < 0) {
-        const jitter = (Math.sin(i * 3.1) + Math.cos(i * 2.3)) * 0.16;
+        const jitter = (Math.sin(i * 3.1) + Math.cos(i * 2.3)) * 0.14;
         basePos.setX(i, basePos.getX(i) + jitter);
         basePos.setZ(i, basePos.getZ(i) + jitter);
       }
     }
     baseGeom.computeVertexNormals();
 
-    const baseMat = new THREE.MeshStandardMaterial({ color: 0x312927, roughness: 0.95, flatShading: true });
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0x443a37, roughness: 0.92, flatShading: true });
     const baseMesh = new THREE.Mesh(baseGeom, baseMat);
-    baseMesh.position.y = -1.75;
+    baseMesh.position.y = -0.92;
     baseMesh.receiveShadow = true;
     this.islandGroup.add(baseMesh);
 
@@ -1402,8 +1409,9 @@ export class Scene3D {
         }
       }
 
-      this.targetRotationY += deltaX * 0.007;
-      this.targetRotationX = Math.max(0.12, Math.min(0.82, this.targetRotationX + deltaY * 0.005));
+      // Invert swipe rotation direction for natural, direct-touch interaction
+      this.targetRotationY -= deltaX * 0.007;
+      this.targetRotationX = Math.max(0.12, Math.min(0.85, this.targetRotationX - deltaY * 0.005));
       this.previousMousePosition = { x: e.clientX, y: e.clientY };
     });
 
@@ -1495,15 +1503,15 @@ export class Scene3D {
     el.addEventListener('touchmove', (e) => {
       if (e.touches.length === 2) {
         const dist = getTouchDist(e);
-        const factor = (dist - this.initialPinchDistance) * 0.015;
-        this.targetZoom = Math.max(4.5, Math.min(10.5, this.targetZoom - factor));
+        const factor = (dist - this.initialPinchDistance) * 0.018;
+        this.targetZoom = Math.max(3.8, Math.min(19.0, this.targetZoom - factor));
         this.initialPinchDistance = dist;
       }
     }, { passive: true });
 
     el.addEventListener('wheel', (e) => {
       e.preventDefault();
-      this.targetZoom = Math.max(4.5, Math.min(10.5, this.targetZoom + e.deltaY * 0.005));
+      this.targetZoom = Math.max(3.8, Math.min(19.0, this.targetZoom + e.deltaY * 0.006));
     }, { passive: false });
   }
 
@@ -1513,8 +1521,8 @@ export class Scene3D {
     const horizontalR = r * Math.cos(this.currentRotationX);
     const x = horizontalR * Math.sin(this.currentRotationY);
     const z = horizontalR * Math.cos(this.currentRotationY);
-    this.camera.position.set(x, y + 0.35, z);
-    this.camera.lookAt(0, 0.45, 0);
+    this.camera.position.set(x, y + 0.45, z);
+    this.camera.lookAt(0, 0.52, 0);
   }
 
   animate() {
@@ -1790,7 +1798,16 @@ export class Scene3D {
     if (!this.container || !this.camera || !this.renderer) return;
     const width = this.container.clientWidth;
     const height = this.container.clientHeight;
-    this.camera.aspect = width / height;
+    const aspect = width / height;
+    this.camera.aspect = aspect;
+
+    // Responsive FOV for portrait mobile: dynamically widen FOV so the whole island is visible!
+    if (aspect < 1.0) {
+      this.camera.fov = Math.min(68, 42 + (1.0 - aspect) * 26);
+    } else {
+      this.camera.fov = 40;
+    }
+
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
   }
