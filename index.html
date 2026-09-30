@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Super Mind Oasis · 課題之森</title>
+
+  <!-- PWA & iOS Safari Immersion Settings -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0e1419">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mind Oasis">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+  <!-- Elegant Web Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- 3D Canvas Viewport -->
+    <div id="canvas-container"></div>
+
+    <!-- Top Right Minimal Utilities (No Obtrusive Logo!) -->
+    <nav class="top-controls">
+      <button id="btn-ambience" class="icon-btn-minimal" title="切換光景氛圍">
+        <span id="ambience-icon">🌅</span>
+      </button>
+      <button id="btn-music" class="icon-btn-minimal" title="平靜背景音樂">
+        <span id="music-icon">🎵</span>
+      </button>
+      <button id="btn-sound" class="icon-btn-minimal" title="音效開關">
+        <span id="sound-icon">🔔</span>
+      </button>
+    </nav>
+
+    <!-- Floating Center Instruction Hint -->
+    <div class="center-hint" id="center-hint">
+      單指旋轉小島 · 點擊樹木傾聽思緒 · 撫摸靈狐習慣
+    </div>
+
+    <!-- Bottom Minimal Floating Island Bar (Diegetic Minimalist Glyphs) -->
+    <footer class="floating-bottom-nav">
+      <!-- Plant Seed -->
+      <button id="btn-plant-open" class="nav-glyph-btn" title="播下新課題">
+        <div class="glyph-circle primary-glow">🌱</div>
+        <span class="glyph-label">播種</span>
+      </button>
+
+      <!-- Resilience Archive -->
+      <button id="btn-archive-open" class="nav-glyph-btn" title="年輪之書">
+        <div class="glyph-circle">📖</div>
+        <span class="glyph-label">年輪之書</span>
+      </button>
+
+      <!-- Habit Pet -->
+      <button id="btn-habit-open" class="nav-glyph-btn" title="習慣小靈狐">
+        <div class="glyph-circle">🦊</div>
+        <span class="glyph-label">習慣陪伴</span>
+      </button>
+    </footer>
+
+    <!-- Tree Inspection Floating Card -->
+    <div id="tree-card" class="tree-floating-card">
+      <div class="card-top">
+        <div>
+          <span id="card-tree-type" class="card-tag">勇氣之橡 · 勇氣與堅韌</span>
+          <h2 id="card-tree-title" class="card-title">學會給自己喘息的空間</h2>
+        </div>
+        <button id="card-close" class="btn-close">&times;</button>
+      </div>
+
+      <div class="card-stats">
+        <div>扎根共存：<strong id="card-tree-days">3 天</strong></div>
+        <div>靜思關照：<strong id="card-tree-nurture">2 次</strong></div>
+      </div>
+
+      <div class="card-worry-quote">
+        <p id="card-tree-worry">總是害怕落後他人，習慣把行程填滿，內心經常處於緊繃的背景噪音中。</p>
+      </div>
+
+      <!-- User Requested Innovation: Tap = Pure Nurture, Hold = Journal Note -->
+      <div class="hold-nurture-container">
+        <div id="btn-hold-nurture" class="hold-nurture-btn">
+          <div id="hold-progress-fill" class="hold-progress-fill"></div>
+          <div class="btn-label-row">
+            <span>💧</span>
+            <span>滋養關照</span>
+            <span class="btn-instruction-sub">(短按純關照 · 長按記感悟)</span>
+          </div>
+        </div>
+
+        <div class="card-secondary-actions">
+          <button id="btn-tree-harvest" class="btn-sub-action">
+            🌟 課題釋懷收穫
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Plant New Tree -->
+    <div id="modal-plant" class="modal-overlay">
+      <div class="modal-dialog">
+        <h3 class="modal-header-title">播下心靈課題之樹</h3>
+        <p class="modal-header-desc">把心中的焦慮、困惑或想克服的課題安放在這片綠洲。時間會在背景陪伴它默默生長。</p>
+
+        <form id="form-plant">
+          <div class="form-field">
+            <label class="field-label" for="plant-title">課題名稱 / 核心困擾 *</label>
+            <input type="text" id="plant-title" class="field-input" placeholder="例如：學會拒絕不合理的要求、轉職迷茫..." required maxlength="40">
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="plant-worry">當下的思緒與心情初衷</label>
+            <textarea id="plant-worry" class="field-textarea" placeholder="寫下此時此刻這件事是如何困擾你的，留給未來的自己對照..." style="height: 80px;"></textarea>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label">選擇象徵樹種</label>
+            <div class="tree-type-selector" id="tree-picker-container"></div>
+          </div>
+
+          <div class="dialog-buttons">
+            <button type="button" class="btn-ghost" id="btn-plant-cancel">暫放</button>
+            <button type="submit" class="btn-amber">安放播種 🌱</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Journal Note (Triggered via Long-Press on Nurture) -->
+    <div id="modal-note" class="modal-overlay">
+      <div class="modal-dialog">
+        <h3 class="modal-header-title">✍️ 刻下心靈年輪感悟</h3>
+        <p class="modal-header-desc">長按感應到了你的深層思緒。此刻對這個難題，有了什麼新的體會或微小的進步？</p>
+
+        <form id="form-note">
+          <div class="form-field">
+            <textarea id="note-text" class="field-textarea" placeholder="寫下一句真實的心境體會..." required style="height: 120px;"></textarea>
+          </div>
+
+          <div class="dialog-buttons">
+            <button type="button" class="btn-ghost" id="btn-note-cancel">取消</button>
+            <button type="submit" class="btn-amber">銘刻年輪 🌿</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Harvest & Breakthrough Insight -->
+    <div id="modal-harvest" class="modal-overlay">
+      <div class="modal-dialog">
+        <h3 class="modal-header-title" style="color: var(--accent-gold);">✨ 恭喜翻越這道人生關卡！</h3>
+        <p class="modal-header-desc">這棵樹已陪伴你經歷了時間的沉澱。在收穫這枚年輪前，請寫下這段歷程帶給你最珍貴的頓悟。</p>
+
+        <form id="form-harvest">
+          <div class="form-field">
+            <label class="field-label" for="harvest-insight">這次課題，我學到了什麼？（解題心法）*</label>
+            <textarea id="harvest-insight" class="field-textarea" placeholder="寫下以後當你再次面臨類似挑戰時，能為你指引方向的智慧語錄..." required style="height: 120px;"></textarea>
+          </div>
+
+          <div class="dialog-buttons">
+            <button type="button" class="btn-ghost" id="btn-harvest-cancel">先等等</button>
+            <button type="submit" class="btn-amber">凝結年輪入庫 🌟</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Visual Tree Gallery & Resilience Archive (年輪之書) -->
+    <div id="modal-archive" class="modal-overlay">
+      <div class="modal-dialog" style="max-width: 520px;">
+        <h3 class="modal-header-title">📖 年輪之書 · 心靈展館</h3>
+        <p class="modal-header-desc">點擊任意樹木可展開完整的「生長心路歷程時間軸」，回顧每一次微小的成長。</p>
+
+        <div class="archive-gallery-grid" id="rings-container">
+          <!-- Dynamically populated Visual Tree Cards with Expandable Timelines -->
+        </div>
+
+        <div class="dialog-buttons">
+          <button type="button" class="btn-amber" id="btn-archive-close" style="width: 100%;">合上典籍</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Habit Companion Pet (習慣寵物) -->
+    <div id="modal-habit" class="modal-overlay">
+      <div class="modal-dialog">
+        <h3 class="modal-header-title">🦊 習慣守護夥伴</h3>
+        <p class="modal-header-desc">養一隻寵物，就是在養一個好習慣。小狐狸在小島上默默陪伴你的日常堅持。</p>
+
+        <div class="habit-streak-display">
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">守護習慣：</div>
+            <div id="habit-name-display" style="font-size: 1.05rem; font-weight: 600; color: #fff;">每日睡前閱讀 15 分鐘</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 0.72rem; color: var(--text-secondary);">已連續陪伴</div>
+            <div class="habit-streak-days" id="habit-streak-count">3 天</div>
+          </div>
+        </div>
+
+        <form id="form-habit-edit" style="margin-bottom: 20px;">
+          <div class="form-field">
+            <label class="field-label" for="habit-input">更換想要培養的好習慣：</label>
+            <input type="text" id="habit-input" class="field-input" placeholder="例如：每日晨跑2公里、喝水2000cc..." maxlength="30">
+          </div>
+          <div style="text-align: right;">
+            <button type="submit" class="btn-ghost" style="padding: 6px 14px;">儲存習慣名稱</button>
+          </div>
+        </form>
+
+        <div class="dialog-buttons">
+          <button type="button" class="btn-ghost" id="btn-habit-close">關閉</button>
+          <button type="button" class="btn-amber" id="btn-habit-checkin">🐾 今日習慣打卡！</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/app.js"></script>
+</body>
+</html>

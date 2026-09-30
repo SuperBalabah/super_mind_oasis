@@ -1,0 +1,24 @@
+{
+  "name": "Super Mind Oasis - 心靈綠洲",
+  "short_name": "Mind Oasis",
+  "description": "專屬於個人的 3D 治癒心靈綠洲與成長之森，將煩惱化為樹木，將領悟沉澱為永恆年輪。",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#12181c",
+  "theme_color": "#1a252c",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
