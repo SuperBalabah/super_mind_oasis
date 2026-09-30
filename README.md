@@ -24,19 +24,16 @@
 
 ---
 
-## 📱 iPhone 連線遊玩指南
+## 📱 iPhone 遊玩方式
 
-1. **同 Wi-Fi 連線**：
-   - 請確保你的 iPhone 與此 ASUS 電腦連線至同一個 Wi-Fi 網絡。
-2. **打開 Safari 瀏覽器**：
-   - 在 iPhone 的 Safari 網址列中輸入：
-     ```
-     http://10.254.15.148:5173/
-     ```
-     *(或電腦上的 `http://localhost:5173/`)*
-3. **加入主畫面（秒變獨立 App）**：
-   - 點擊 Safari 底部的「**分享**」按鈕（帶箭頭的方框）。
-   - 往下滑動找到並點擊「**加入主畫面 (Add to Home Screen)**」。
-   - 點擊右上角「**新增**」。
-4. **開始遊玩**：
-   - iPhone 桌面上會出現「**Mind Oasis**」專屬圖示，點開即進入無瀏覽器邊框的全螢幕沉浸世界！
+### 方式 A：GitHub Pages 雲端隨開即玩（最推薦，免同一 Wi-Fi）
+1. 在 iPhone 的 Safari 網址列直接打開：
+   **[https://superbalabah.github.io/super_mind_oasis/](https://superbalabah.github.io/super_mind_oasis/)**
+2. 點擊 Safari 底部的「**分享**」按鈕（向上箭頭）。
+3. 選擇「**加入主畫面 (Add to Home Screen)**」。
+4. 點擊「新增」後，iPhone 桌面即生成專屬全螢幕 App！
+
+### 方式 B：本地 Wi-Fi 即時熱更新（局域網連線）
+1. 確保 iPhone 與 ASUS 電腦連線至同一個 Wi-Fi 網絡。
+2. 在 iPhone Safari 輸入：`http://10.254.15.148:5173/`
+3. 享受即時熱更新的開發與遊玩體驗。
