@@ -49,6 +49,12 @@
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
       </button>
+
+      <button id="btn-sync" class="icon-btn-pure" title="雲端共鳴 · 跨設備同步">
+        <svg viewBox="0 0 24 24" id="icon-sync-svg">
+          <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+        </svg>
+      </button>
     </nav>
 
     <!-- Top-Right Grayscale Semi-Transparent Pet Widget -->
@@ -213,14 +219,6 @@
 
         <div class="archive-gallery-grid" id="rings-container"></div>
 
-        <div class="backup-restore-row">
-          <button type="button" class="backup-link-btn" id="btn-export-backup">導出資料備份 (.json)</button>
-          <label class="backup-link-btn" for="input-import-backup" style="cursor: pointer;">
-            導入資料備份
-            <input type="file" id="input-import-backup" accept=".json" style="display: none;">
-          </label>
-        </div>
-
         <div class="dialog-buttons" style="margin-top: 14px;">
           <button type="button" class="btn-amber" id="btn-archive-close" style="width: 100%;">合上典籍</button>
         </div>
@@ -281,6 +279,77 @@
           <button type="button" class="btn-ghost-danger" id="btn-pet-release-action" style="padding: 9px 18px;">放生夥伴</button>
           <button type="button" class="btn-amber" id="btn-pet-detail-close" style="padding: 9px 24px;">回到小島</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Modal: GitHub Gist Cloud Sync -->
+    <div id="modal-sync" class="modal-overlay">
+      <div class="modal-dialog" style="max-width: 480px;">
+        <div class="sync-modal-header">
+          <div class="sync-title-row">
+            <svg class="sync-title-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+            </svg>
+            <h3 class="modal-header-title" style="margin: 0;">雲端共鳴 · 跨設備同步</h3>
+          </div>
+          <div class="sync-last-time" id="sync-last-time-text">上次同步：尚未同步</div>
+        </div>
+
+        <p class="modal-header-desc" style="margin-bottom: 14px;">
+          透過私有 GitHub Gist 在 iPhone 與電腦間跨設備同步心靈綠洲，資料僅留存在您的個人 GitHub，完全免費且安全隱私。
+        </p>
+
+        <form id="form-sync-settings">
+          <div class="sync-switch-row" id="sync-switch-container">
+            <div class="sync-switch-label">
+              <span class="sync-switch-title">開啟自動背景同步</span>
+              <span class="sync-switch-sub">每次開啟自動拉取最新進度，島嶼變更時背景靜默上傳</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="sync-auto-toggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="form-field" style="margin-top: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <label class="field-label" for="sync-token-input">GitHub Personal Access Token (PAT) *</label>
+              <a href="https://github.com/settings/tokens/new?scopes=gist&description=SuperMindOasisSync" target="_blank" rel="noopener" class="sync-help-link">生成 Token (僅需 gist 權限)</a>
+            </div>
+            <input type="password" id="sync-token-input" class="field-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+            <div class="field-hint-text">Token 僅安全存放於本機瀏覽器，絕不經過任何第三方伺服器</div>
+          </div>
+
+          <div class="form-field">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <label class="field-label" for="sync-gist-id-input">Gist ID</label>
+              <button type="button" id="btn-create-gist" class="sync-action-link-btn">自動建立私有 Gist</button>
+            </div>
+            <input type="text" id="sync-gist-id-input" class="field-input" placeholder="例：a1b2c3d4e5f6..." autocomplete="off">
+            <div class="field-hint-text">在第二台設備（如手機）上填入相同 Token 與 Gist ID 即可雙向互通</div>
+          </div>
+
+          <!-- Manual Push / Pull Action Row with pure vector SVG, ZERO ugly emojis -->
+          <div class="sync-manual-actions-grid">
+            <button type="button" id="btn-manual-push" class="sync-btn-outline" title="將本機島嶼上傳覆蓋至雲端">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 19V5M5 12l7-7 7 7"/>
+              </svg>
+              <span>上傳至雲端</span>
+            </button>
+            <button type="button" id="btn-manual-pull" class="sync-btn-outline" title="從雲端下載並更新本機">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14M19 12l-7 7-7-7"/>
+              </svg>
+              <span>從雲端拉取</span>
+            </button>
+          </div>
+
+          <div class="dialog-buttons" style="margin-top: 18px;">
+            <button type="button" class="btn-ghost" id="btn-sync-cancel">關閉</button>
+            <button type="submit" class="btn-amber" id="btn-sync-save">儲存設定</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>

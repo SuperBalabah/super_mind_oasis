@@ -1,6 +1,6 @@
 // V3.2 Main Application Controller for Super Mind Oasis
 import { Scene3D } from './scene3d.js';
-import { Storage, TREE_TYPES, PET_SPECIES } from './storage.js';
+import { Storage, TREE_TYPES, PET_SPECIES, GistSync } from './storage.js';
 import { sound } from './audio.js';
 
 class App {
@@ -10,6 +10,9 @@ class App {
     this.selectedTreeType = 'oak';
     this.selectedPetSpecies = 'sheep';
     this.settings = Storage.getSettings();
+    this.syncConfig = Storage.getSyncConfig();
+    this.syncDebounceTimer = null;
+    this.isSyncing = false;
 
     // Long press nurture state on tree card
     this.holdTimer = null;
@@ -22,6 +25,7 @@ class App {
       btnAmbience: document.getElementById('btn-ambience'),
       btnMusic: document.getElementById('btn-music'),
       btnSound: document.getElementById('btn-sound'),
+      btnSync: document.getElementById('btn-sync'),
       hint: document.getElementById('center-hint'),
       toast: document.getElementById('floating-toast'),
 
@@ -64,8 +68,18 @@ class App {
       modalArchive: document.getElementById('modal-archive'),
       btnArchiveClose: document.getElementById('btn-archive-close'),
       ringsContainer: document.getElementById('rings-container'),
-      btnExportBackup: document.getElementById('btn-export-backup'),
-      inputImportBackup: document.getElementById('input-import-backup'),
+
+      // Cloud Sync Modal
+      modalSync: document.getElementById('modal-sync'),
+      btnSyncCancel: document.getElementById('btn-sync-cancel'),
+      formSyncSettings: document.getElementById('form-sync-settings'),
+      syncLastTimeText: document.getElementById('sync-last-time-text'),
+      syncAutoToggle: document.getElementById('sync-auto-toggle'),
+      syncTokenInput: document.getElementById('sync-token-input'),
+      syncGistIdInput: document.getElementById('sync-gist-id-input'),
+      btnCreateGist: document.getElementById('btn-create-gist'),
+      btnManualPush: document.getElementById('btn-manual-push'),
+      btnManualPull: document.getElementById('btn-manual-pull'),
 
       // Top-Right Grayscale Pet Widget
       topPetsWidget: document.getElementById('top-pets-widget'),
@@ -100,6 +114,8 @@ class App {
     this.renderTopPetsWidget();
     this.setupEventListeners();
     this.applySettings();
+    this.updateSyncButtonStatus();
+    this.checkRemoteSyncOnLaunch();
 
     setTimeout(() => {
       if (this.dom.hint) this.dom.hint.style.opacity = '0';
@@ -212,6 +228,7 @@ class App {
           this.scene.updateTrees(Storage.getTrees());
           sound.playWaterDrop();
           this.showToast(`🍃 已剷除【${tree.title}】`);
+          this.scheduleCloudPush();
         }
       });
     }
@@ -228,6 +245,7 @@ class App {
         this.closeTreeCard();
         this.selectedTree = null;
         this.scene.updateTrees(Storage.getTrees());
+        this.scheduleCloudPush();
         setTimeout(() => this.openArchiveModal(), 600);
       }
     });
@@ -247,6 +265,7 @@ class App {
           this.updateTreeCardContent(updated);
           this.scene.updateTrees(Storage.getTrees());
         }
+        this.scheduleCloudPush();
       }
     });
 
@@ -273,6 +292,7 @@ class App {
         this.closeModal(this.dom.modalPlant);
         this.scene.updateTrees(Storage.getTrees());
         this.onTreeSelected(newTree);
+        this.scheduleCloudPush();
       }
     });
 
@@ -280,36 +300,25 @@ class App {
     this.dom.btnArchiveOpen.addEventListener('click', () => this.openArchiveModal());
     this.dom.btnArchiveClose.addEventListener('click', () => this.closeModal(this.dom.modalArchive));
 
-    // Backup & Restore
-    this.dom.btnExportBackup.addEventListener('click', () => {
-      const json = Storage.exportAllData();
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `mind_oasis_backup_${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-
-    this.dom.inputImportBackup.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const success = Storage.importData(event.target.result);
-        if (success) {
-          alert('備份還原成功！小島已同步更新。');
-          this.scene.updateTrees(Storage.getTrees());
-          this.scene.updatePets(Storage.getPets());
-          this.renderTopPetsWidget();
-          this.openArchiveModal();
-        } else {
-          alert('備份格式不正確，請確認檔案內容。');
-        }
-      };
-      reader.readAsText(file);
-    });
+    // Cloud Sync Modal Listeners
+    if (this.dom.btnSync) {
+      this.dom.btnSync.addEventListener('click', () => this.openSyncModal());
+    }
+    if (this.dom.btnSyncCancel) {
+      this.dom.btnSyncCancel.addEventListener('click', () => this.closeModal(this.dom.modalSync));
+    }
+    if (this.dom.formSyncSettings) {
+      this.dom.formSyncSettings.addEventListener('submit', (e) => this.onSaveSyncSettings(e));
+    }
+    if (this.dom.btnCreateGist) {
+      this.dom.btnCreateGist.addEventListener('click', () => this.onCreateGist());
+    }
+    if (this.dom.btnManualPush) {
+      this.dom.btnManualPush.addEventListener('click', () => this.onManualPush());
+    }
+    if (this.dom.btnManualPull) {
+      this.dom.btnManualPull.addEventListener('click', () => this.onManualPull());
+    }
 
     // Pet Modal Listeners
     this.dom.btnHabitOpen.addEventListener('click', () => this.openAdoptModal());
@@ -326,6 +335,7 @@ class App {
       this.scene.updatePets(Storage.getPets());
       this.renderTopPetsWidget();
       this.showToast(`✨ 歡迎【${newPet.name}】來到心靈綠洲！`);
+      this.scheduleCloudPush();
     });
 
     this.dom.btnPetDetailClose.addEventListener('click', () => this.closeModal(this.dom.modalPetDetail));
@@ -398,6 +408,7 @@ class App {
           this.updateTreeCardContent(updated);
           this.scene.updateTrees(Storage.getTrees());
         }
+        this.scheduleCloudPush();
         btn.style.transform = 'scale(0.96)';
         setTimeout(() => btn.style.transform = '', 180);
       }
@@ -547,6 +558,7 @@ class App {
       sound.playPetChirp();
       this.showToast(`🍃【${pet.name}】已回歸山林大自然`);
       this.currentInspectingPet = null;
+      this.scheduleCloudPush();
     }
   }
 
@@ -564,6 +576,7 @@ class App {
     } catch (e) {}
     this.showToast(`✨ 已溫暖陪伴【${petData.name}】· 守護「${petData.habitTitle}」`);
     this.renderTopPetsWidget();
+    this.scheduleCloudPush();
   }
 
   // --- VISUAL TREE GALLERY IN ARCHIVE (MATCHING EXACT TREE ART) ---
@@ -657,6 +670,7 @@ class App {
               sound.playWaterDrop();
               this.openArchiveModal();
               this.showToast(`🍃 已刪除【${item.title}】年輪記錄`);
+              this.scheduleCloudPush();
             }
           });
         }
@@ -666,6 +680,220 @@ class App {
     }
 
     this.openModal(this.dom.modalArchive);
+  }
+
+  // --- CLOUD SYNC (GITHUB GIST) ---
+  updateSyncButtonStatus() {
+    if (!this.dom.btnSync) return;
+    const isConfigured = Boolean(this.syncConfig.enabled && this.syncConfig.token && this.syncConfig.gistId);
+    this.dom.btnSync.classList.toggle('connected', isConfigured);
+    this.dom.btnSync.title = isConfigured ? '雲端共鳴 · 已連線 (點擊同步或設定)' : '雲端共鳴 · 跨設備同步 (未連線)';
+  }
+
+  setSyncingVisual(isSyncing) {
+    if (this.dom.btnSync) {
+      this.dom.btnSync.classList.toggle('syncing', isSyncing);
+    }
+    if (this.dom.btnManualPush) this.dom.btnManualPush.disabled = isSyncing;
+    if (this.dom.btnManualPull) this.dom.btnManualPull.disabled = isSyncing;
+  }
+
+  updateSyncTimeDisplay() {
+    if (!this.dom.syncLastTimeText) return;
+    if (!this.syncConfig.lastSyncTime) {
+      this.dom.syncLastTimeText.textContent = '上次同步：尚未同步';
+      return;
+    }
+    const d = new Date(this.syncConfig.lastSyncTime);
+    const dateStr = d.toLocaleDateString('zh-TW', { year: 'numeric', month: 'numeric', day: 'numeric' });
+    const timeStr = d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+    this.dom.syncLastTimeText.textContent = `上次同步：${dateStr} ${timeStr}`;
+  }
+
+  openSyncModal() {
+    this.dom.syncAutoToggle.checked = Boolean(this.syncConfig.autoSync !== false);
+    this.dom.syncTokenInput.value = this.syncConfig.token || '';
+    this.dom.syncGistIdInput.value = this.syncConfig.gistId || '';
+    this.updateSyncTimeDisplay();
+    this.openModal(this.dom.modalSync);
+  }
+
+  async onSaveSyncSettings(e) {
+    e.preventDefault();
+    const token = this.dom.syncTokenInput.value.trim();
+    const gistId = this.dom.syncGistIdInput.value.trim();
+    const autoSync = this.dom.syncAutoToggle.checked;
+
+    this.syncConfig.token = token;
+    this.syncConfig.gistId = gistId;
+    this.syncConfig.autoSync = autoSync;
+    this.syncConfig.enabled = Boolean(token && gistId);
+
+    Storage.saveSyncConfig(this.syncConfig);
+    this.updateSyncButtonStatus();
+    this.closeModal(this.dom.modalSync);
+    sound.playWaterDrop();
+    this.showToast(this.syncConfig.enabled ? '✨ 雲端同步設定已保存' : '已保存本地設定');
+
+    if (this.syncConfig.enabled && this.syncConfig.autoSync) {
+      this.scheduleCloudPush();
+    }
+  }
+
+  async onCreateGist() {
+    const token = this.dom.syncTokenInput.value.trim();
+    if (!token) {
+      alert('請先填寫上方 GitHub Token！');
+      this.dom.syncTokenInput.focus();
+      return;
+    }
+
+    const btn = this.dom.btnCreateGist;
+    btn.textContent = '建立中...';
+    btn.disabled = true;
+
+    try {
+      const payload = Storage.exportAllDataPayload();
+      const gistId = await GistSync.createGist(token, payload);
+      this.dom.syncGistIdInput.value = gistId;
+      this.syncConfig.token = token;
+      this.syncConfig.gistId = gistId;
+      this.syncConfig.enabled = true;
+      this.syncConfig.autoSync = this.dom.syncAutoToggle.checked;
+      this.syncConfig.lastSyncTime = Date.now();
+      Storage.saveSyncConfig(this.syncConfig);
+
+      this.updateSyncTimeDisplay();
+      this.updateSyncButtonStatus();
+      sound.playInsightChime();
+      this.showToast('✨ 私有 Gist 建立成功，已完成首次雲端同步');
+    } catch (err) {
+      alert(`建立失敗：${err.message}`);
+    } finally {
+      btn.textContent = '自動建立私有 Gist';
+      btn.disabled = false;
+    }
+  }
+
+  async onManualPush() {
+    const token = this.dom.syncTokenInput.value.trim();
+    const gistId = this.dom.syncGistIdInput.value.trim();
+    if (!token || !gistId) {
+      alert('請先填寫 Token 與 Gist ID！');
+      return;
+    }
+    this.syncConfig.token = token;
+    this.syncConfig.gistId = gistId;
+    this.syncConfig.enabled = true;
+    Storage.saveSyncConfig(this.syncConfig);
+
+    await this.performCloudPush(false);
+  }
+
+  async onManualPull() {
+    const token = this.dom.syncTokenInput.value.trim();
+    const gistId = this.dom.syncGistIdInput.value.trim();
+    if (!token || !gistId) {
+      alert('請先填寫 Token 與 Gist ID！');
+      return;
+    }
+    this.syncConfig.token = token;
+    this.syncConfig.gistId = gistId;
+    this.syncConfig.enabled = true;
+    Storage.saveSyncConfig(this.syncConfig);
+
+    await this.performCloudPull(false);
+  }
+
+  scheduleCloudPush() {
+    if (!this.syncConfig.enabled || !this.syncConfig.autoSync) return;
+    if (!this.syncConfig.token || !this.syncConfig.gistId) return;
+
+    clearTimeout(this.syncDebounceTimer);
+    this.syncDebounceTimer = setTimeout(() => {
+      this.performCloudPush(true);
+    }, 1500);
+  }
+
+  async performCloudPush(silent = false) {
+    if (this.isSyncing) return;
+    if (!this.syncConfig.token || !this.syncConfig.gistId) return;
+
+    this.isSyncing = true;
+    this.setSyncingVisual(true);
+
+    try {
+      const payload = Storage.exportAllDataPayload();
+      await GistSync.pushToGist(this.syncConfig.token, this.syncConfig.gistId, payload);
+      this.syncConfig.lastSyncTime = Date.now();
+      Storage.saveSyncConfig(this.syncConfig);
+      this.updateSyncTimeDisplay();
+      this.updateSyncButtonStatus();
+
+      if (!silent) {
+        sound.playInsightChime();
+        this.showToast('✨ 心靈綠洲已成功推送至雲端');
+      }
+    } catch (err) {
+      console.error('Cloud Push Error:', err);
+      if (!silent) {
+        alert(`上傳失敗: ${err.message}`);
+      }
+    } finally {
+      this.isSyncing = false;
+      this.setSyncingVisual(false);
+    }
+  }
+
+  async performCloudPull(silent = false) {
+    if (this.isSyncing) return;
+    if (!this.syncConfig.token || !this.syncConfig.gistId) return;
+
+    this.isSyncing = true;
+    this.setSyncingVisual(true);
+
+    try {
+      const { payload, updatedAt } = await GistSync.pullFromGist(this.syncConfig.token, this.syncConfig.gistId);
+      if (payload) {
+        const success = Storage.applySyncedData(payload);
+        if (success) {
+          this.syncConfig.lastSyncTime = Date.now();
+          Storage.saveSyncConfig(this.syncConfig);
+          this.updateSyncTimeDisplay();
+          this.updateSyncButtonStatus();
+
+          this.scene.updateTrees(Storage.getTrees());
+          this.scene.updatePets(Storage.getPets());
+          this.renderTopPetsWidget();
+
+          if (silent) {
+            this.showToast('微風拂過，已自雲端同步最新心靈綠洲');
+          } else {
+            sound.playInsightChime();
+            this.showToast('✨ 已從雲端成功拉取最新島嶼資料');
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Cloud Pull Error:', err);
+      if (!silent) {
+        alert(`拉取失敗: ${err.message}`);
+      }
+    } finally {
+      this.isSyncing = false;
+      this.setSyncingVisual(false);
+    }
+  }
+
+  async checkRemoteSyncOnLaunch() {
+    if (!this.syncConfig.enabled || !this.syncConfig.autoSync) return;
+    if (!this.syncConfig.token || !this.syncConfig.gistId) return;
+
+    try {
+      await this.performCloudPull(true);
+    } catch (e) {
+      console.log('Background launch sync skipped:', e.message);
+    }
   }
 
   openModal(modalEl) {

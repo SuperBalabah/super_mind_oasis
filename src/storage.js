@@ -3,6 +3,7 @@ const STORAGE_KEY_TREES = 'super_mind_oasis_trees_v3';
 const STORAGE_KEY_RINGS = 'super_mind_oasis_rings_v3';
 const STORAGE_KEY_SETTINGS = 'super_mind_oasis_settings_v3';
 const STORAGE_KEY_PETS = 'super_mind_oasis_pets_v3';
+const STORAGE_KEY_SYNC = 'super_mind_oasis_sync_v1';
 
 export const TREE_TYPES = {
   oak: {
@@ -425,8 +426,8 @@ export const Storage = {
     return { x: Math.cos(angle) * dist + 0.5, z: Math.sin(angle) * dist + 0.4 };
   },
 
-  exportAllData() {
-    const payload = {
+  exportAllDataPayload() {
+    return {
       version: 3,
       exportedAt: new Date().toISOString(),
       trees: this.getTrees(),
@@ -434,25 +435,142 @@ export const Storage = {
       pets: this.getPets(),
       settings: this.getSettings()
     };
-    return JSON.stringify(payload, null, 2);
+  },
+
+  exportAllData() {
+    return JSON.stringify(this.exportAllDataPayload(), null, 2);
   },
 
   importData(jsonString) {
     try {
       const data = JSON.parse(jsonString);
-      if (data.trees) this.saveTrees(data.trees);
-      if (data.rings) this.saveRings(data.rings);
-      if (data.pets) this.savePets(data.pets);
-      if (data.settings) this.saveSettings(data.settings);
-      return true;
+      return this.applySyncedData(data);
     } catch (e) {
       return false;
     }
+  },
+
+  applySyncedData(payload) {
+    if (!payload || typeof payload !== 'object') return false;
+    try {
+      if (Array.isArray(payload.trees)) this.saveTrees(payload.trees);
+      if (Array.isArray(payload.rings)) this.saveRings(payload.rings);
+      if (Array.isArray(payload.pets)) this.savePets(payload.pets);
+      if (payload.settings && typeof payload.settings === 'object') this.saveSettings(payload.settings);
+      return true;
+    } catch (e) {
+      console.error('Failed to apply synced data:', e);
+      return false;
+    }
+  },
+
+  getSyncConfig() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_SYNC);
+      if (!raw) return { enabled: false, autoSync: true, token: '', gistId: '', lastSyncTime: null };
+      return { enabled: false, autoSync: true, token: '', gistId: '', lastSyncTime: null, ...JSON.parse(raw) };
+    } catch (e) {
+      return { enabled: false, autoSync: true, token: '', gistId: '', lastSyncTime: null };
+    }
+  },
+
+  saveSyncConfig(config) {
+    try {
+      localStorage.setItem(STORAGE_KEY_SYNC, JSON.stringify(config));
+    } catch (e) {}
   },
 
   clearAllToBlank() {
     this.saveTrees([]);
     this.savePets([]);
     this.saveRings([]);
+  }
+};
+
+export const GistSync = {
+  FILENAME: 'super_mind_oasis_data.json',
+
+  getHeaders(token) {
+    return {
+      'Accept': 'application/vnd.github+json',
+      'Authorization': `Bearer ${token.trim()}`,
+      'X-GitHub-Api-Version': '2022-11-28'
+    };
+  },
+
+  async createGist(token, payload) {
+    if (!token || !token.trim()) throw new Error('請先輸入 GitHub Token');
+    const res = await fetch('https://api.github.com/gists', {
+      method: 'POST',
+      headers: this.getHeaders(token),
+      body: JSON.stringify({
+        description: 'Super Mind Oasis · 心靈綠洲跨設備雲端備份 (Private Secret Gist)',
+        public: false,
+        files: {
+          [this.FILENAME]: {
+            content: JSON.stringify(payload, null, 2)
+          }
+        }
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `建立 Gist 失敗 (${res.status})`);
+    }
+    const gist = await res.json();
+    return gist.id;
+  },
+
+  async pushToGist(token, gistId, payload) {
+    if (!token || !token.trim()) throw new Error('請先輸入 GitHub Token');
+    if (!gistId || !gistId.trim()) throw new Error('請先輸入或建立 Gist ID');
+
+    const res = await fetch(`https://api.github.com/gists/${gistId.trim()}`, {
+      method: 'PATCH',
+      headers: this.getHeaders(token),
+      body: JSON.stringify({
+        description: `Super Mind Oasis · 雲端同步 (${new Date().toLocaleString('zh-TW')})`,
+        files: {
+          [this.FILENAME]: {
+            content: JSON.stringify(payload, null, 2)
+          }
+        }
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `上傳 Gist 失敗 (${res.status})`);
+    }
+    return await res.json();
+  },
+
+  async pullFromGist(token, gistId) {
+    if (!token || !token.trim()) throw new Error('請先輸入 GitHub Token');
+    if (!gistId || !gistId.trim()) throw new Error('請先輸入 Gist ID');
+
+    const res = await fetch(`https://api.github.com/gists/${gistId.trim()}`, {
+      method: 'GET',
+      headers: this.getHeaders(token),
+      cache: 'no-store'
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `拉取 Gist 失敗 (${res.status})`);
+    }
+    const gist = await res.json();
+    const file = gist.files && (gist.files[this.FILENAME] || gist.files['mind_oasis_data.json']);
+    if (!file) {
+      throw new Error(`Gist 中未找到 ${this.FILENAME} 資料檔案`);
+    }
+    let content = file.content;
+    if (file.truncated && file.raw_url) {
+      const rawRes = await fetch(file.raw_url, { cache: 'no-store' });
+      if (rawRes.ok) content = await rawRes.text();
+    }
+    const parsed = JSON.parse(content);
+    return {
+      payload: parsed,
+      updatedAt: gist.updated_at
+    };
   }
 };
