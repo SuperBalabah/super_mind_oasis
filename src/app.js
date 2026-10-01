@@ -227,7 +227,7 @@ class App {
           this.selectedTree = null;
           this.scene.updateTrees(Storage.getTrees());
           sound.playWaterDrop();
-          this.showToast(`🍃 已剷除【${tree.title}】`);
+          this.showToast(`已剷除【${tree.title}】`);
           this.scheduleCloudPush();
         }
       });
@@ -334,7 +334,7 @@ class App {
       this.closeModal(this.dom.modalAdopt);
       this.scene.updatePets(Storage.getPets());
       this.renderTopPetsWidget();
-      this.showToast(`✨ 歡迎【${newPet.name}】來到心靈綠洲！`);
+      this.showToast(`歡迎【${newPet.name}】來到心靈綠洲`);
       this.scheduleCloudPush();
     });
 
@@ -556,7 +556,7 @@ class App {
       this.renderTopPetsWidget();
       this.closeModal(this.dom.modalPetDetail);
       sound.playPetChirp();
-      this.showToast(`🍃【${pet.name}】已回歸山林大自然`);
+      this.showToast(`【${pet.name}】已回歸山林大自然`);
       this.currentInspectingPet = null;
       this.scheduleCloudPush();
     }
@@ -574,7 +574,7 @@ class App {
     try {
       if ('vibrate' in navigator) navigator.vibrate([30, 45, 30]);
     } catch (e) {}
-    this.showToast(`✨ 已溫暖陪伴【${petData.name}】· 守護「${petData.habitTitle}」`);
+    this.showToast(`已陪伴【${petData.name}】· 守護「${petData.habitTitle}」`);
     this.renderTopPetsWidget();
     this.scheduleCloudPush();
   }
@@ -669,7 +669,7 @@ class App {
               Storage.deleteRing(item.id);
               sound.playWaterDrop();
               this.openArchiveModal();
-              this.showToast(`🍃 已刪除【${item.title}】年輪記錄`);
+              this.showToast(`已刪除【${item.title}】年輪記錄`);
               this.scheduleCloudPush();
             }
           });
@@ -733,7 +733,7 @@ class App {
     this.updateSyncButtonStatus();
     this.closeModal(this.dom.modalSync);
     sound.playWaterDrop();
-    this.showToast(this.syncConfig.enabled ? '✨ 雲端同步設定已保存' : '已保存本地設定');
+    this.showToast(this.syncConfig.enabled ? '雲端同步設定已保存' : '已保存本地設定');
 
     if (this.syncConfig.enabled && this.syncConfig.autoSync) {
       this.scheduleCloudPush();
@@ -766,7 +766,7 @@ class App {
       this.updateSyncTimeDisplay();
       this.updateSyncButtonStatus();
       sound.playInsightChime();
-      this.showToast('✨ 私有 Gist 建立成功，已完成首次雲端同步');
+      this.showToast('私有 Gist 建立成功，已完成首次同步');
     } catch (err) {
       alert(`建立失敗：${err.message}`);
     } finally {
@@ -832,7 +832,7 @@ class App {
 
       if (!silent) {
         sound.playInsightChime();
-        this.showToast('✨ 心靈綠洲已成功推送至雲端');
+        this.showToast('心靈綠洲已成功推送至雲端');
       }
     } catch (err) {
       console.error('Cloud Push Error:', err);
@@ -866,11 +866,9 @@ class App {
           this.scene.updatePets(Storage.getPets());
           this.renderTopPetsWidget();
 
-          if (silent) {
-            this.showToast('微風拂過，已自雲端同步最新心靈綠洲');
-          } else {
+          if (!silent) {
             sound.playInsightChime();
-            this.showToast('✨ 已從雲端成功拉取最新島嶼資料');
+            this.showToast('已從雲端成功拉取最新島嶼資料');
           }
         }
       }

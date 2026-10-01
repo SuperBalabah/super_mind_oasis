@@ -67,5 +67,16 @@ assert(appCode.includes('onCreateGist('), 'app.js has onCreateGist method');
 assert(appCode.includes('performCloudPush('), 'app.js has performCloudPush method');
 assert(appCode.includes('performCloudPull('), 'app.js has performCloudPull method');
 
+// 5. Aesthetic Refinement Assertions
+assert(!css.includes('.icon-btn-pure.connected {'), 'Cloud button does NOT have permanent golden .connected style (stays white when idle)');
+assert(!css.includes('.nav-pure-icon-btn.primary svg {\n  stroke: var(--accent-gold);'), 'Plant button is NOT forced golden (now matches white minimal style)');
+assert(!css.includes('border: 1px solid rgba(237, 210, 133, 0.35);'), 'Toast does NOT have greasy golden border (now clean frosted glass)');
+
+// Verify ZERO emojis in all showToast invocations in app.js
+const toastCalls = [...appCode.matchAll(/this\.showToast\((.*?)\)/g)].map(m => m[1]);
+const hasEmojiInToast = toastCalls.some(str => /[\u{1F300}-\u{1F9FF}]/u.test(str));
+assert(!hasEmojiInToast, 'All showToast invocations contain ZERO emojis');
+
 console.log(`\n=== Cloud Sync Test Summary: ${passCount} Passed, ${failCount} Failed ===`);
 if (failCount > 0) process.exit(1);
+
