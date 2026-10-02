@@ -1283,12 +1283,18 @@ export class Scene3D {
       this.fireLight.intensity = 1.8;
     }
 
-    // Lock document body and html to deep dark (#0e1419) to prevent wine-red safe area/overscroll leaks beneath modals
+    const skyColors = {
+      day: '#7fb8db',
+      sunset: '#281924',
+      night: '#0e131a',
+      rain: '#192128'
+    };
+    const skyHex = skyColors[mode] || '#0e1419';
     if (typeof document !== 'undefined') {
-      if (document.body) document.body.style.backgroundColor = '#0e1419';
-      if (document.documentElement) document.documentElement.style.backgroundColor = '#0e1419';
+      if (document.body) document.body.style.backgroundColor = skyHex;
+      if (document.documentElement) document.documentElement.style.backgroundColor = skyHex;
       const metaTheme = document.querySelector('meta[name="theme-color"]');
-      if (metaTheme) metaTheme.setAttribute('content', '#0e1419');
+      if (metaTheme) metaTheme.setAttribute('content', skyHex);
     }
   }
 

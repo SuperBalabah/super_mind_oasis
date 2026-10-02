@@ -213,37 +213,71 @@ class App {
       sound.ensureContext();
       this.settings.soundEnabled = !this.settings.soundEnabled;
       Storage.saveSettings(this.settings);
-      sound.setMuted(!this.settings.soundEnabled);
+      sound.setSoundFxEnabled(this.settings.soundEnabled);
       this.dom.btnSound.classList.toggle('muted', !this.settings.soundEnabled);
     });
 
-    this.dom.cardClose.addEventListener('click', () => this.closeTreeCard());
+    this.dom.cardClose.addEventListener('click', () => {
+      sound.playWaterDrop();
+      this.closeTreeCard();
+    });
     this.setupHoldToNurtureInteraction();
 
     // Harvest Modal
     this.dom.btnTreeHarvest.addEventListener('click', () => {
+      sound.playPetChirp();
       this.dom.harvestInsight.value = '';
       this.openModal(this.dom.modalHarvest);
     });
 
-    // Delete / Chop Down Tree
+    // Delete / Chop Down Tree (Inline Two-Step Confirmation - Zero Blocking, No Audio Interruption)
     if (this.dom.btnTreeDelete) {
+      let treeDeleteTimer = null;
       this.dom.btnTreeDelete.addEventListener('click', () => {
+        sound.ensureContext();
         if (!this.selectedTree) return;
         const tree = this.selectedTree;
-        if (confirm(`確定要剷除並移出這棵課題之樹【${tree.title}】嗎？`)) {
+        const btn = this.dom.btnTreeDelete;
+
+        if (btn.dataset.confirming === 'true') {
+          clearTimeout(treeDeleteTimer);
+          btn.dataset.confirming = 'false';
+          btn.textContent = '剷除此樹';
+          btn.style.color = '';
+          btn.style.borderColor = '';
+
           Storage.deleteTree(tree.id);
           this.closeTreeCard();
           this.selectedTree = null;
           this.scene.updateTrees(Storage.getTrees());
           sound.playWaterDrop();
+          sound.ensureContext();
           this.showToast(`已剷除【${tree.title}】`);
           this.scheduleCloudPush();
+        } else {
+          btn.dataset.confirming = 'true';
+          btn.textContent = '確定剷除？再次點擊確認';
+          btn.style.color = '#ff8080';
+          btn.style.borderColor = 'rgba(255, 128, 128, 0.5)';
+          sound.playWaterDrop();
+
+          clearTimeout(treeDeleteTimer);
+          treeDeleteTimer = setTimeout(() => {
+            if (btn) {
+              btn.dataset.confirming = 'false';
+              btn.textContent = '剷除此樹';
+              btn.style.color = '';
+              btn.style.borderColor = '';
+            }
+          }, 3500);
         }
       });
     }
 
-    this.dom.btnHarvestCancel.addEventListener('click', () => this.closeModal(this.dom.modalHarvest));
+    this.dom.btnHarvestCancel.addEventListener('click', () => {
+      sound.playWaterDrop();
+      this.closeModal(this.dom.modalHarvest);
+    });
 
     this.dom.formHarvest.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -261,7 +295,10 @@ class App {
     });
 
     // Note Modal
-    this.dom.btnNoteCancel.addEventListener('click', () => this.closeModal(this.dom.modalNote));
+    this.dom.btnNoteCancel.addEventListener('click', () => {
+      sound.playWaterDrop();
+      this.closeModal(this.dom.modalNote);
+    });
 
     this.dom.formNote.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -281,12 +318,16 @@ class App {
 
     // Plant Modal
     this.dom.btnPlantOpen.addEventListener('click', () => {
+      sound.playPetChirp();
       this.dom.plantTitle.value = '';
       this.dom.plantWorry.value = '';
       this.openModal(this.dom.modalPlant);
     });
 
-    this.dom.btnPlantCancel.addEventListener('click', () => this.closeModal(this.dom.modalPlant));
+    this.dom.btnPlantCancel.addEventListener('click', () => {
+      sound.playWaterDrop();
+      this.closeModal(this.dom.modalPlant);
+    });
 
     this.dom.formPlant.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -307,15 +348,27 @@ class App {
     });
 
     // Archive Modal
-    this.dom.btnArchiveOpen.addEventListener('click', () => this.openArchiveModal());
-    this.dom.btnArchiveClose.addEventListener('click', () => this.closeModal(this.dom.modalArchive));
+    this.dom.btnArchiveOpen.addEventListener('click', () => {
+      sound.playPetChirp();
+      this.openArchiveModal();
+    });
+    this.dom.btnArchiveClose.addEventListener('click', () => {
+      sound.playPageTurn();
+      this.closeModal(this.dom.modalArchive);
+    });
 
     // Cloud Sync Modal Listeners
     if (this.dom.btnSync) {
-      this.dom.btnSync.addEventListener('click', () => this.openSyncModal());
+      this.dom.btnSync.addEventListener('click', () => {
+        sound.playPetChirp();
+        this.openSyncModal();
+      });
     }
     if (this.dom.btnSyncCancel) {
-      this.dom.btnSyncCancel.addEventListener('click', () => this.closeModal(this.dom.modalSync));
+      this.dom.btnSyncCancel.addEventListener('click', () => {
+        sound.playWaterDrop();
+        this.closeModal(this.dom.modalSync);
+      });
     }
     if (this.dom.formSyncSettings) {
       this.dom.formSyncSettings.addEventListener('submit', (e) => this.onSaveSyncSettings(e));
@@ -331,8 +384,14 @@ class App {
     }
 
     // Pet Modal Listeners
-    this.dom.btnHabitOpen.addEventListener('click', () => this.openAdoptModal());
-    this.dom.btnAdoptCancel.addEventListener('click', () => this.closeModal(this.dom.modalAdopt));
+    this.dom.btnHabitOpen.addEventListener('click', () => {
+      sound.playPetChirp();
+      this.openAdoptModal();
+    });
+    this.dom.btnAdoptCancel.addEventListener('click', () => {
+      sound.playWaterDrop();
+      this.closeModal(this.dom.modalAdopt);
+    });
 
     this.dom.formAdoptPet.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -431,9 +490,10 @@ class App {
 
   applySettings() {
     this.applyAmbience(this.settings.ambienceMode || 'sunset');
-    sound.setMuted(!this.settings.soundEnabled);
-    this.dom.btnSound.classList.toggle('muted', !this.settings.soundEnabled);
-    this.dom.btnMusic.classList.toggle('muted', !this.settings.musicEnabled);
+    sound.setSoundFxEnabled(this.settings.soundEnabled !== false);
+    this.dom.btnSound.classList.toggle('muted', this.settings.soundEnabled === false);
+    sound.setMusicEnabled(this.settings.musicEnabled !== false);
+    this.dom.btnMusic.classList.toggle('muted', this.settings.musicEnabled === false);
   }
 
   applyAmbience(mode) {
@@ -554,21 +614,56 @@ class App {
     this.dom.petDetailSpecies.textContent = sp.name;
     this.dom.petDetailHabit.textContent = pet.habitTitle;
     this.dom.petDetailCare.textContent = `${pet.careCount || 1} 次`;
+
+    // Reset release button confirmation state
+    if (this.dom.btnPetReleaseAction) {
+      this.dom.btnPetReleaseAction.dataset.confirming = 'false';
+      this.dom.btnPetReleaseAction.textContent = '放生此夥伴';
+      this.dom.btnPetReleaseAction.style.color = '';
+      this.dom.btnPetReleaseAction.style.borderColor = '';
+    }
+
     this.openModal(this.dom.modalPetDetail);
   }
 
   releaseCurrentPet() {
+    sound.ensureContext();
     if (!this.currentInspectingPet) return;
     const pet = this.currentInspectingPet;
-    if (confirm(`確定要放生【${pet.name}】嗎？小夥伴將告別綠洲回歸大自然。`)) {
+    const btn = this.dom.btnPetReleaseAction;
+
+    if (btn && btn.dataset.confirming === 'true') {
+      clearTimeout(this.petReleaseTimer);
+      btn.dataset.confirming = 'false';
+      btn.textContent = '放生此夥伴';
+      btn.style.color = '';
+      btn.style.borderColor = '';
+
       Storage.deletePet(pet.id);
       this.scene.updatePets(Storage.getPets());
       this.renderTopPetsWidget();
       this.closeModal(this.dom.modalPetDetail);
-      sound.playPetChirp();
+      sound.playWaterDrop();
+      sound.ensureContext();
       this.showToast(`【${pet.name}】已回歸山林大自然`);
       this.currentInspectingPet = null;
       this.scheduleCloudPush();
+    } else if (btn) {
+      btn.dataset.confirming = 'true';
+      btn.textContent = '確定放生？再次點擊確認';
+      btn.style.color = '#ff8080';
+      btn.style.borderColor = 'rgba(255, 128, 128, 0.5)';
+      sound.playWaterDrop();
+
+      clearTimeout(this.petReleaseTimer);
+      this.petReleaseTimer = setTimeout(() => {
+        if (btn) {
+          btn.dataset.confirming = 'false';
+          btn.textContent = '放生此夥伴';
+          btn.style.color = '';
+          btn.style.borderColor = '';
+        }
+      }, 3500);
     }
   }
 
@@ -677,14 +772,35 @@ class App {
 
         const deleteRingBtn = card.querySelector('.btn-delete-ring');
         if (deleteRingBtn) {
+          let ringDeleteTimer = null;
           deleteRingBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (confirm(`確定要刪除這枚歷史年輪記錄【${item.title}】嗎？`)) {
+            sound.ensureContext();
+
+            if (deleteRingBtn.dataset.confirming === 'true') {
+              clearTimeout(ringDeleteTimer);
               Storage.deleteRing(item.id);
               sound.playWaterDrop();
+              sound.ensureContext();
               this.openArchiveModal();
               this.showToast(`已刪除【${item.title}】年輪記錄`);
               this.scheduleCloudPush();
+            } else {
+              deleteRingBtn.dataset.confirming = 'true';
+              deleteRingBtn.textContent = '確定？';
+              deleteRingBtn.style.color = '#ff7070';
+              deleteRingBtn.style.borderColor = 'rgba(255, 112, 112, 0.5)';
+              sound.playWaterDrop();
+
+              clearTimeout(ringDeleteTimer);
+              ringDeleteTimer = setTimeout(() => {
+                if (deleteRingBtn) {
+                  deleteRingBtn.dataset.confirming = 'false';
+                  deleteRingBtn.textContent = '刪除';
+                  deleteRingBtn.style.color = '';
+                  deleteRingBtn.style.borderColor = '';
+                }
+              }, 3500);
             }
           });
         }
@@ -757,7 +873,7 @@ class App {
   async onCreateGist() {
     const token = this.dom.syncTokenInput.value.trim();
     if (!token) {
-      alert('請先填寫上方 GitHub Token！');
+      this.showToast('請先填寫上方 GitHub Token');
       this.dom.syncTokenInput.focus();
       return;
     }
@@ -782,7 +898,7 @@ class App {
       sound.playInsightChime();
       this.showToast('私有 Gist 建立成功，已完成首次同步');
     } catch (err) {
-      alert(`建立失敗：${err.message}`);
+      this.showToast(`建立失敗：${err.message}`);
     } finally {
       btn.textContent = '自動建立私有 Gist';
       btn.disabled = false;
@@ -793,7 +909,7 @@ class App {
     const token = this.dom.syncTokenInput.value.trim();
     const gistId = this.dom.syncGistIdInput.value.trim();
     if (!token || !gistId) {
-      alert('請先填寫 Token 與 Gist ID！');
+      this.showToast('請先填寫 Token 與 Gist ID');
       return;
     }
     this.syncConfig.token = token;
@@ -808,7 +924,7 @@ class App {
     const token = this.dom.syncTokenInput.value.trim();
     const gistId = this.dom.syncGistIdInput.value.trim();
     if (!token || !gistId) {
-      alert('請先填寫 Token 與 Gist ID！');
+      this.showToast('請先填寫 Token 與 Gist ID');
       return;
     }
     this.syncConfig.token = token;
@@ -846,12 +962,12 @@ class App {
 
       if (!silent) {
         sound.playInsightChime();
-        this.showToast('心靈綠洲已成功推送至雲端');
+        this.showToast('心靈島已成功推送至雲端');
       }
     } catch (err) {
       console.error('Cloud Push Error:', err);
       if (!silent) {
-        alert(`上傳失敗: ${err.message}`);
+        this.showToast(`上傳失敗: ${err.message}`);
       }
     } finally {
       this.isSyncing = false;
@@ -889,7 +1005,7 @@ class App {
     } catch (err) {
       console.error('Cloud Pull Error:', err);
       if (!silent) {
-        alert(`拉取失敗: ${err.message}`);
+        this.showToast(`拉取失敗: ${err.message}`);
       }
     } finally {
       this.isSyncing = false;

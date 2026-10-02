@@ -7,6 +7,7 @@ class SoundEngine {
     this.musicGain = null;
     this.isMuted = false;
     this.isMusicEnabled = true;
+    this.isSoundFxEnabled = true;
 
     this.windNode = null;
     this.rainNode = null;
@@ -88,6 +89,10 @@ class SoundEngine {
     if (enabled && !this.musicInterval) {
       this.startAmbientMusic();
     }
+  }
+
+  setSoundFxEnabled(enabled) {
+    this.isSoundFxEnabled = enabled;
   }
 
   startAmbientMusic() {
@@ -202,7 +207,7 @@ class SoundEngine {
 
   // Water droplet sound on pond tap or UI confirmations (Softened: gain 0.10)
   playWaterDrop() {
-    if (this.isMuted) return;
+    if (!this.isSoundFxEnabled || this.isMuted) return;
     this.ensureContext();
     if (!this.ctx) return;
 
@@ -227,7 +232,7 @@ class SoundEngine {
 
   // Tibetan singing bowl on tree planting or milestones (Softened: gain1 0.20, gain2 0.07)
   playSingingBowl(freq = 288) {
-    if (this.isMuted) return;
+    if (!this.isSoundFxEnabled || this.isMuted) return;
     this.ensureContext();
     if (!this.ctx) return;
 
@@ -271,7 +276,7 @@ class SoundEngine {
 
   // Gentle insight wind chime for harvest or sync success (Balanced: gain 0.12)
   playInsightChime() {
-    if (this.isMuted) return;
+    if (!this.isSoundFxEnabled || this.isMuted) return;
     this.ensureContext();
     if (!this.ctx) return;
 
@@ -301,7 +306,7 @@ class SoundEngine {
   // --- ANIMAL SPECIES VOICES (SHORT-TAP INTERACTION) ---
   // Purely synthesized Web Audio voices: 100% offline, zero latency, tailored for 5 species
   playPetVoice(species) {
-    if (this.isMuted) return;
+    if (!this.isSoundFxEnabled || this.isMuted) return;
     this.ensureContext();
     if (!this.ctx) return;
 
@@ -492,7 +497,7 @@ class SoundEngine {
 
   // Fallback gentle chirp
   playPetChirp() {
-    if (this.isMuted) return;
+    if (!this.isSoundFxEnabled || this.isMuted) return;
     this.ensureContext();
     if (!this.ctx) return;
 
@@ -518,7 +523,7 @@ class SoundEngine {
 
   // Shared pet feeding eating motion & chewing munch sound (when long-pressing pet)
   playFeedingNibble() {
-    if (this.isMuted) return;
+    if (!this.isSoundFxEnabled || this.isMuted) return;
     this.ensureContext();
     if (!this.ctx) return;
 
@@ -541,6 +546,62 @@ class SoundEngine {
       osc.start(now + delay);
       osc.stop(now + delay + 0.09);
     }
+  }
+
+  // Organic tactile paper rustle & gentle book closing sound for 合上典籍
+  playPageTurn() {
+    if (!this.isSoundFxEnabled || this.isMuted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+
+    // 1. Gentle paper friction flutter (filtered noise)
+    try {
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.22);
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI);
+      }
+      const noiseSource = this.ctx.createBufferSource();
+      noiseSource.buffer = noiseBuffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1400, now);
+      filter.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+      filter.Q.setValueAtTime(1.8, now);
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.001, now);
+      noiseGain.gain.linearRampToValueAtTime(0.07, now + 0.04);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.21);
+
+      noiseSource.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(this.masterGain);
+
+      noiseSource.start(now);
+      noiseSource.stop(now + 0.22);
+    } catch (e) {}
+
+    // 2. Soft acoustic book cover thump
+    const thudOsc = this.ctx.createOscillator();
+    const thudGain = this.ctx.createGain();
+    thudOsc.type = 'sine';
+    thudOsc.frequency.setValueAtTime(120, now + 0.06);
+    thudOsc.frequency.exponentialRampToValueAtTime(65, now + 0.20);
+
+    thudGain.gain.setValueAtTime(0.001, now);
+    thudGain.gain.setValueAtTime(0.06, now + 0.07);
+    thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+    thudOsc.connect(thudGain);
+    thudGain.connect(this.masterGain);
+
+    thudOsc.start(now + 0.06);
+    thudOsc.stop(now + 0.23);
   }
 
   toggleRain(enable) {

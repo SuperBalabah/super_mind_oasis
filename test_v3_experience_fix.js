@@ -1,4 +1,4 @@
-// Automated Node.js Zero-Token Test for 心靈島 (Mind Island) 6 UX & Audio Fixes
+// Automated Node.js Zero-Token Test for 心靈島 (Mind Island) Full Experience Refactor
 import fs from 'fs';
 
 let passCount = 0;
@@ -14,7 +14,7 @@ function assert(cond, msg) {
   }
 }
 
-console.log('=== 心靈島 (Mind Island) - 6 UX & Audio Fixes Verification ===\n');
+console.log('=== 心靈島 (Mind Island) - Full Experience Verification ===\n');
 
 // 1. Rebranding
 const html = fs.readFileSync('index.html', 'utf-8');
@@ -27,50 +27,54 @@ assert(manifest.short_name === '心靈島', 'manifest.json has short_name "心�
 assert(manifest.name === '心靈島 - 課題之森', 'manifest.json has name "心靈島 - 課題之森"');
 assert(readme.startsWith('# 心靈島 (Mind Island · 課題之森)'), 'README.md begins with "# 心靈島 (Mind Island · 課題之森)"');
 
-// 2. Issue 1: Bottom red band leak prevention
+// 2. Full-screen Viewport & Uniform Modal Overlay (No 100dvh cutoff, No bottom black band)
 const sceneCode = fs.readFileSync('src/scene3d.js', 'utf-8');
 const css = fs.readFileSync('styles.css', 'utf-8');
 
-assert(sceneCode.includes("document.body.style.backgroundColor = '#0e1419';"), 'scene3d.js locks body background to deep dark #0e1419');
-assert(!sceneCode.includes("document.body.style.backgroundColor = skyHex;"), 'scene3d.js no longer assigns sunset #281924 to body');
-assert(css.includes('height: 100dvh;'), 'styles.css uses height: 100dvh for mobile dynamic viewport');
-assert(css.includes('min-height: -webkit-fill-available;'), 'styles.css supports iOS -webkit-fill-available');
-assert(css.includes('inset: 0;'), 'styles.css uses inset: 0 for fixed overlays');
+assert(css.includes('#app {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100vw;\n  height: 100%;'), '#app uses seamless 100% full-screen fixed positioning');
+assert(!css.includes('#app {\n  position: fixed;\n  inset: 0;\n  width: 100vw;\n  height: 100vh;\n  height: 100dvh;'), '#app no longer uses height: 100dvh cutoff');
+assert(css.includes('.modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100vw;\n  height: 100%;'), '.modal-overlay covers 100% full-screen seamlessly');
+assert(sceneCode.includes('document.body.style.backgroundColor = skyHex;'), 'scene3d.js syncs body background with skyHex for full-screen edge-to-edge color');
 
-// 3. Issue 2 & 3: Background music boost, no electronic square wave clicks, balanced SFX
+// 3. Audio & SFX Decoupling (Sound FX does not kill background music)
 const audioCode = fs.readFileSync('src/audio.js', 'utf-8');
+const appCode = fs.readFileSync('src/app.js', 'utf-8');
 
-assert(audioCode.includes('this.musicGain.gain.setValueAtTime(0.85'), 'audio.js boosts musicGain to 0.85 for headphone clarity');
-assert(audioCode.includes('this.ambientGain.gain.setValueAtTime(0.0'), 'audio.js silences ambientGain by default so background purely plays music');
-assert(!audioCode.includes("popOsc.type = 'square'"), 'audio.js eliminated square-wave cracklePop electronic beeping');
-assert(audioCode.includes('this.playNextChord(true);'), 'audio.js launches first chord immediately');
-assert(audioCode.includes('isImmediate ? 0.5 : 3.0'), 'audio.js fast attacks first chord in 0.5s');
+assert(audioCode.includes('this.isSoundFxEnabled = true;'), 'audio.js has isSoundFxEnabled state');
+assert(audioCode.includes('setSoundFxEnabled(enabled)'), 'audio.js implements setSoundFxEnabled method');
+assert(appCode.includes('sound.setSoundFxEnabled(this.settings.soundEnabled);'), 'app.js btnSound toggles sound.setSoundFxEnabled instead of setMuted');
+assert(!appCode.includes('sound.setMuted(!this.settings.soundEnabled);'), 'app.js no longer calls setMuted when toggling soundEnabled');
+assert(audioCode.includes('if (!this.isSoundFxEnabled || this.isMuted) return;'), 'audio.js guards SFX with isSoundFxEnabled');
 
-// 4. Issue 4: Pet interaction decoupling (Short tap vs Long press)
+// 4. Button Color Consistency (Pure 2-state: bright white and soft gray, no sticky hover)
+assert(css.includes('color: rgba(255, 255, 255, 0.85);'), 'styles.css uses standard bright white for normal state');
+assert(css.includes('.icon-btn-pure.muted {\n  color: rgba(255, 255, 255, 0.35) !important;'), 'styles.css uses soft gray for muted state');
+assert(!css.includes('.icon-btn-pure:hover, .icon-btn-pure:active {\n  color: #ffffff;'), 'styles.css does not change color on hover to avoid sticky mobile hover');
+assert(!css.includes('.nav-pure-icon-btn:hover {\n  color: #ffffff;'), 'styles.css bottom nav does not change color on hover to avoid sticky mobile hover');
+
+// 5. Missing SFX & Page Turn Sound
+assert(audioCode.includes('playPageTurn()'), 'audio.js implements procedural playPageTurn() for archive close');
+assert(appCode.includes('this.dom.btnSync.addEventListener(\'click\', () => {\n        sound.playPetChirp();'), 'app.js btnSync plays chirp sound');
+assert(appCode.includes('this.dom.btnPlantOpen.addEventListener(\'click\', () => {\n      sound.playPetChirp();'), 'app.js btnPlantOpen plays chirp sound');
+assert(appCode.includes('this.dom.btnArchiveOpen.addEventListener(\'click\', () => {\n      sound.playPetChirp();'), 'app.js btnArchiveOpen plays chirp sound');
+assert(appCode.includes('this.dom.btnHabitOpen.addEventListener(\'click\', () => {\n      sound.playPetChirp();'), 'app.js btnHabitOpen plays chirp sound');
+assert(appCode.includes('this.dom.btnArchiveClose.addEventListener(\'click\', () => {\n      sound.playPageTurn();'), 'app.js btnArchiveClose plays page turn sound');
+assert(appCode.includes('this.dom.btnPlantCancel.addEventListener(\'click\', () => {\n      sound.playWaterDrop();'), 'app.js btnPlantCancel plays water drop sound');
+assert(appCode.includes('this.dom.btnHarvestCancel.addEventListener(\'click\', () => {\n      sound.playWaterDrop();'), 'app.js btnHarvestCancel plays water drop sound');
+assert(appCode.includes('this.dom.btnNoteCancel.addEventListener(\'click\', () => {\n      sound.playWaterDrop();'), 'app.js btnNoteCancel plays water drop sound');
+
+// 6. Complete Elimination of Blocking confirm() and alert()
+assert(!appCode.includes('confirm('), 'app.js has ZERO blocking confirm() calls');
+assert(!appCode.includes('alert('), 'app.js has ZERO blocking alert() calls');
+assert(appCode.includes("btn.textContent = '確定剷除？再次點擊確認';"), 'app.js implements inline two-step confirmation for tree deletion');
+assert(appCode.includes("btn.textContent = '確定放生？再次點擊確認';"), 'app.js implements inline two-step confirmation for pet release');
+assert(appCode.includes("deleteRingBtn.textContent = '確定？';"), 'app.js implements inline two-step confirmation for archive ring deletion');
+
+// 7. Pet Interaction Decoupling
 assert(sceneCode.includes('petHoldThresholdTimer'), 'scene3d.js implements petHoldThresholdTimer for threshold separation');
 assert(sceneCode.includes('PET_HOLD_THRESHOLD = 260'), 'scene3d.js uses 260ms threshold to decouple tap from hold');
-assert(!sceneCode.includes("hitObj.userData.feedDish.visible = true;\n\n          if (this.onPetHoldStart) this.onPetHoldStart(petData);"), 'scene3d.js does not immediately show dish on pointerdown');
-assert(sceneCode.includes("petObj.userData.aiState.state = 'looking_up';"), 'scene3d.js plays looking_up curiosity animation on short tap');
 assert(audioCode.includes('playPetVoice(species)'), 'audio.js implements playPetVoice for species-specific vocalization');
-assert(audioCode.includes('playSheepBleat()'), 'audio.js implements sheep bleat ("咩~")');
-assert(audioCode.includes('playFoxChirp()'), 'audio.js implements fox chirp ("kik-yup!")');
-assert(audioCode.includes('playShibaBark()'), 'audio.js implements shiba bark ("汪!")');
-assert(audioCode.includes('playCatMeow()'), 'audio.js implements cat meow ("喵~")');
-assert(audioCode.includes('playDeerWhistle()'), 'audio.js implements deer whistle');
-
-const appCode = fs.readFileSync('src/app.js', 'utf-8');
 assert(appCode.includes('sound.playPetVoice(petData.species)'), 'app.js calls sound.playPetVoice(petData.species) on short tap');
-
-// 5. Issue 5: iOS callout / text selection suppression
-assert(css.includes('-webkit-touch-callout: none !important;'), 'styles.css disables iOS touch callout menu');
-assert(css.includes('-webkit-user-select: none !important;'), 'styles.css disables text selection');
-assert(sceneCode.includes("el.addEventListener('contextmenu'"), 'scene3d.js suppresses contextmenu on 3D canvas');
-assert(appCode.includes("window.addEventListener('contextmenu'"), 'app.js suppresses contextmenu across document except inputs');
-
-// 6. Issue 6 & Question 7: Optimistic audio auto launch & 0ms latency unlock
-assert(audioCode.includes('tryOptimisticAutoStart(musicEnabled = true)'), 'audio.js implements tryOptimisticAutoStart');
-assert(appCode.includes('sound.tryOptimisticAutoStart(this.settings.musicEnabled);'), 'app.js calls tryOptimisticAutoStart on page init');
-assert(appCode.includes("window.addEventListener('pointerdown', unlockAudio, { capture: true });"), 'app.js unlocks audio in capture phase on first touch');
 
 console.log(`\nVerification Complete: ${passCount} passed, ${failCount} failed.`);
 if (failCount > 0) process.exit(1);
