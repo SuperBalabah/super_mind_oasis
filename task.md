@@ -57,7 +57,12 @@
   - [x] 14.3 [音效] 與 [聲音] 按鈕統一雙色狀態（正常亮白與淡灰，消除觸控高亮殘留與第三種超亮態）
   - [x] 14.4 補齊各處點擊反饋音效（雲端與底欄 3 按鈕補齊輕脆鳥鳴音；暫放/先等等補齊水滴音；合上典籍專門實作合成翻頁合書聲）
   - [x] 14.5 全域根除所有阻塞式彈窗（樹木剷除、寵物放生、年輪刪除改為無阻塞內聯確認，雲端 6 處 alert 改 Toast）
-  - [x] 14.6 自動化測試斷言、構建與發布
+  - [x] 15. 徹底根治 iOS 視口底部橫條溢色與底欄按鈕置底懸空問題 <!-- id: 15 -->
+  - [x] 15.1 根因精確排查與修復：移除 `#app` 與 `.modal-overlay` 上的 `height: 100%`（因 CSS 規範中 explicit `height` 會覆蓋 `bottom: 0`，致使視口截斷在 760px，底下 84px 露餡）；全面改用 `position: fixed; inset: 0; height: var(--app-height, 100lvh); min-height: 100%;`
+  - [x] 15.2 實作 iOS Standalone PWA 真正物理全螢幕動態同步：在 `app.js` 新增 `syncViewport()`，精準偵測 iOS Standalone PWA 並綁定 `Math.max(window.innerHeight, window.screen.height)` 至 `--app-height`，確保畫布與彈窗直達螢幕 844px 物理最底部
+  - [x] 15.3 徹底解決底欄三選項懸空過高問題：重新計算 `.floating-bottom-nav` 的 safe-area 間距，採用原生 iOS Tab Bar 的 `max(14px, env(safe-area-inset-bottom, 14px))` 緊密置底貼合 Home Bar，消除疊加雙重 padding
+  - [x] 15.4 彈窗色彩全局統一管理：在 `openModal` 時將 `body` 與 `meta[name="theme-color"]` 鎖定為深色 `#0a1016`；在 `closeModal` 時無縫恢復天空色 `skyHex`，杜絕任何淺藍色/紅黑色橫條漏出
+  - [x] 15.5 自動化驗證、Vite 構建與 GitHub master 推送
 
 
 

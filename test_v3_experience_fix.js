@@ -27,18 +27,20 @@ assert(manifest.short_name === '心靈島', 'manifest.json has short_name "心�
 assert(manifest.name === '心靈島 - 課題之森', 'manifest.json has name "心靈島 - 課題之森"');
 assert(readme.startsWith('# 心靈島 (Mind Island · 課題之森)'), 'README.md begins with "# 心靈島 (Mind Island · 課題之森)"');
 
-// 2. Full-screen Viewport & Uniform Modal Overlay (No 100dvh cutoff, No bottom black band)
+// 2. Full-screen Viewport & Uniform Modal Overlay (True physical screen, 100lvh & --app-height)
 const sceneCode = fs.readFileSync('src/scene3d.js', 'utf-8');
 const css = fs.readFileSync('styles.css', 'utf-8');
+const appCode = fs.readFileSync('src/app.js', 'utf-8');
 
-assert(css.includes('#app {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100vw;\n  height: 100%;'), '#app uses seamless 100% full-screen fixed positioning');
-assert(!css.includes('#app {\n  position: fixed;\n  inset: 0;\n  width: 100vw;\n  height: 100vh;\n  height: 100dvh;'), '#app no longer uses height: 100dvh cutoff');
-assert(css.includes('.modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100vw;\n  height: 100%;'), '.modal-overlay covers 100% full-screen seamlessly');
-assert(sceneCode.includes('document.body.style.backgroundColor = skyHex;'), 'scene3d.js syncs body background with skyHex for full-screen edge-to-edge color');
+assert(css.includes('#app {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100%;\n  height: 100%;\n  height: 100lvh;\n  height: var(--app-height, 100lvh);'), '#app uses seamless 100lvh / --app-height full-screen positioning');
+assert(css.includes('.modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100%;\n  height: 100%;\n  height: 100lvh;\n  height: var(--app-height, 100lvh);'), '.modal-overlay covers 100% full-screen seamlessly');
+assert(css.includes('.floating-bottom-nav {\n  position: absolute;\n  bottom: 0;\n  left: 0;\n  width: 100%;\n  padding: 0 24px max(14px, env(safe-area-inset-bottom, 14px)) 24px;'), '.floating-bottom-nav is cleanly docked above home indicator');
+assert(appCode.includes('syncViewport()'), 'app.js implements dynamic syncViewport() for iOS Standalone PWA');
+assert(appCode.includes('document.body.style.backgroundColor = \'#0a1016\''), 'app.js locks background to #0a1016 when modal opens');
+assert(sceneCode.includes('this.currentSkyHex = skyHex;'), 'scene3d.js tracks currentSkyHex for seamless restoration');
 
 // 3. Audio & SFX Decoupling (Sound FX does not kill background music)
 const audioCode = fs.readFileSync('src/audio.js', 'utf-8');
-const appCode = fs.readFileSync('src/app.js', 'utf-8');
 
 assert(audioCode.includes('this.isSoundFxEnabled = true;'), 'audio.js has isSoundFxEnabled state');
 assert(audioCode.includes('setSoundFxEnabled(enabled)'), 'audio.js implements setSoundFxEnabled method');

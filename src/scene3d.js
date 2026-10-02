@@ -1290,11 +1290,15 @@ export class Scene3D {
       rain: '#192128'
     };
     const skyHex = skyColors[mode] || '#0e1419';
+    this.currentSkyHex = skyHex;
     if (typeof document !== 'undefined') {
-      if (document.body) document.body.style.backgroundColor = skyHex;
-      if (document.documentElement) document.documentElement.style.backgroundColor = skyHex;
-      const metaTheme = document.querySelector('meta[name="theme-color"]');
-      if (metaTheme) metaTheme.setAttribute('content', skyHex);
+      const anyModalActive = document.querySelector('.modal-overlay.active');
+      if (!anyModalActive) {
+        if (document.body) document.body.style.backgroundColor = skyHex;
+        if (document.documentElement) document.documentElement.style.backgroundColor = skyHex;
+        const metaTheme = document.querySelector('meta[name="theme-color"]');
+        if (metaTheme) metaTheme.setAttribute('content', skyHex);
+      }
     }
   }
 
@@ -1831,8 +1835,8 @@ export class Scene3D {
 
   onResize() {
     if (!this.container || !this.camera || !this.renderer) return;
-    const width = this.container.clientWidth;
-    const height = this.container.clientHeight;
+    const width = this.container.clientWidth || window.innerWidth;
+    const height = this.container.clientHeight || window.innerHeight;
     const aspect = width / height;
     this.camera.aspect = aspect;
 

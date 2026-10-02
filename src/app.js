@@ -107,6 +107,7 @@ class App {
   }
 
   init() {
+    this.syncViewport();
     this.registerPWA();
     this.init3DScene();
     this.renderTreePicker();
@@ -187,6 +188,17 @@ class App {
         e.preventDefault();
       }
     }, { passive: false });
+
+    // Dynamic Viewport Sync on resize and orientationchange
+    window.addEventListener('resize', () => {
+      this.syncViewport();
+    });
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        this.syncViewport();
+        if (this.scene) this.scene.onResize();
+      }, 120);
+    });
 
     // Ambience
     const ambiences = ['sunset', 'night', 'rain', 'day'];
@@ -1024,12 +1036,43 @@ class App {
     }
   }
 
+  syncViewport() {
+    const isIOS = typeof navigator !== 'undefined' && (/iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+    const isStandalone = typeof window !== 'undefined' && 
+                         ((window.navigator && window.navigator.standalone === true) || 
+                          (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches));
+
+    let h = typeof window !== 'undefined' ? window.innerHeight : 844;
+    if (isIOS && isStandalone && window.screen && window.screen.height) {
+      h = Math.max(window.innerHeight, window.screen.height);
+    }
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.setProperty('--app-height', `${h}px`);
+    }
+    return h;
+  }
+
   openModal(modalEl) {
+    this.syncViewport();
     modalEl.classList.add('active');
+    // Lock document background and meta theme-color to deep modal backdrop (#0a1016)
+    if (document.body) document.body.style.backgroundColor = '#0a1016';
+    if (document.documentElement) document.documentElement.style.backgroundColor = '#0a1016';
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) metaTheme.setAttribute('content', '#0a1016');
   }
 
   closeModal(modalEl) {
     modalEl.classList.remove('active');
+    const anyModalActive = document.querySelector('.modal-overlay.active');
+    if (!anyModalActive) {
+      const skyHex = this.scene ? this.scene.currentSkyHex || '#0e1419' : '#0e1419';
+      if (document.body) document.body.style.backgroundColor = skyHex;
+      if (document.documentElement) document.documentElement.style.backgroundColor = skyHex;
+      const metaTheme = document.querySelector('meta[name="theme-color"]');
+      if (metaTheme) metaTheme.setAttribute('content', skyHex);
+    }
   }
 }
 
