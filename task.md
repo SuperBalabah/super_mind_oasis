@@ -63,6 +63,12 @@
   - [x] 15.3 徹底解決底欄三選項懸空過高問題：重新計算 `.floating-bottom-nav` 的 safe-area 間距，採用原生 iOS Tab Bar 的 `max(14px, env(safe-area-inset-bottom, 14px))` 緊密置底貼合 Home Bar，消除疊加雙重 padding
   - [x] 15.4 彈窗色彩全局統一管理：在 `openModal` 時將 `body` 與 `meta[name="theme-color"]` 鎖定為深色 `#0a1016`；在 `closeModal` 時無縫恢復天空色 `skyHex`，杜絕任何淺藍色/紅黑色橫條漏出
   - [x] 15.5 自動化驗證、Vite 構建與 GitHub master 推送
+- [x] 16. 終極解決 iOS PWA 視口底部橫條與底欄按鈕懸空問題（對齊 life-progress-v2 / EpicQuest 重製版架構） <!-- id: 16 -->
+  - [x] 16.1 根因徹底破譯：破除 `black-translucent` 誘發的 WebKit 座標錯位與 chin gap，改用標準 `default` 配合 `theme-color`
+  - [x] 16.2 解除 `html, body` 上的 `position: fixed` 拘禁，恢復標準視口流，杜絕固定定位元素被截斷在安全區上緣
+  - [x] 16.3 底欄三按鈕精準置底：採用緊密安全區間距 `max(14px, calc(env(safe-area-inset-bottom, 0px) + 6px))`，消除飛起浮空，緊密優雅貼齊 Home Bar 上緣
+  - [x] 16.4 畫布與彈窗真正滿版覆蓋：實作 `getViewportDimensions()`，Standalone 模式下強制填滿螢幕物理像素，徹底杜絕 952px 處水平接縫
+  - [x] 16.5 全套自動化驗證通過、Vite 正式打包構建並推送到 GitHub master
 
 
 

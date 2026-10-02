@@ -27,15 +27,19 @@ assert(manifest.short_name === '心靈島', 'manifest.json has short_name "心�
 assert(manifest.name === '心靈島 - 課題之森', 'manifest.json has name "心靈島 - 課題之森"');
 assert(readme.startsWith('# 心靈島 (Mind Island · 課題之森)'), 'README.md begins with "# 心靈島 (Mind Island · 課題之森)"');
 
-// 2. Full-screen Viewport & Uniform Modal Overlay (Locked Body, Absolute Inset, Fixed Bottom Nav)
+// 2. Full-screen Viewport & Uniform Modal Overlay (True Viewport, Full-Bleed Inset, Bottom-Docked Nav)
 const sceneCode = fs.readFileSync('src/scene3d.js', 'utf-8');
 const css = fs.readFileSync('styles.css', 'utf-8');
 const appCode = fs.readFileSync('src/app.js', 'utf-8');
 
-assert(css.includes('html, body {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100%;\n  height: 100%;'), 'html/body is locked to fixed viewport without drift');
-assert(css.includes('#app {\n  position: absolute;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100%;\n  height: 100%;\n}'), '#app fills 100% of body without clipping overflow');
-assert(css.includes('.modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100%;\n  height: 100%;'), '.modal-overlay covers 100% full-screen seamlessly');
+assert(html.includes('<meta name="apple-mobile-web-app-status-bar-style" content="default">'), 'index.html uses default status bar style to prevent WebKit chin gap and coordinate shift');
+assert(css.includes('html {\n  width: 100%;\n  height: 100%;\n  min-height: 100%;\n  overscroll-behavior: none;'), 'html has full height and overscroll-behavior none');
+assert(css.includes('body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  height: 100%;\n  min-height: 100%;\n  min-height: 100dvh;\n  overflow: hidden;'), 'body has min-height 100dvh and no position fixed');
+assert(css.includes('#app {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100vw;\n  height: 100vh;\n  height: 100dvh;'), '#app fills 100vw/100dvh full-screen');
+assert(css.includes('.modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100vw;\n  height: 100vh;\n  height: 100dvh;'), '.modal-overlay covers 100vw/100dvh full-screen seamlessly');
 assert(css.includes('.floating-bottom-nav {\n  position: fixed;\n  bottom: 0;\n  left: 0;\n  right: 0;\n  width: 100%;'), '.floating-bottom-nav is fixed directly to screen bottom');
+assert(css.includes('padding: 0 20px max(14px, calc(env(safe-area-inset-bottom, 0px) + 6px)) 20px;'), '.floating-bottom-nav is cleanly docked right above home indicator');
+assert(sceneCode.includes('getViewportDimensions()'), 'scene3d.js implements getViewportDimensions() for standalone PWA full-bleed coverage');
 assert(appCode.includes('document.body.style.backgroundColor = \'#0a1016\''), 'app.js locks background to #0a1016 when modal opens');
 assert(sceneCode.includes('this.currentSkyHex = skyHex;'), 'scene3d.js tracks currentSkyHex for seamless restoration');
 

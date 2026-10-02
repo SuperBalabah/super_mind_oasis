@@ -64,10 +64,30 @@ export class Scene3D {
     this.init();
   }
 
+  getViewportDimensions() {
+    let width = (this.container && this.container.clientWidth) || (typeof window !== 'undefined' ? window.innerWidth : 420);
+    let height = (this.container && this.container.clientHeight) || (typeof window !== 'undefined' ? window.innerHeight : 844);
+
+    if (typeof window !== 'undefined') {
+      const isStandalone = (window.navigator && window.navigator.standalone === true) || 
+                           (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+      if (isStandalone && window.screen) {
+        if (window.screen.width && window.screen.width > width) {
+          width = window.screen.width;
+        }
+        if (window.screen.height && window.screen.height > height) {
+          height = window.screen.height;
+        }
+      }
+    }
+    return { width, height };
+  }
+
   init() {
     this.scene = new THREE.Scene();
 
-    const aspect = this.container.clientWidth / this.container.clientHeight;
+    const { width, height } = this.getViewportDimensions();
+    const aspect = width / height;
     const initialFov = aspect < 1.0 ? Math.min(68, 42 + (1.0 - aspect) * 26) : 40;
     this.camera = new THREE.PerspectiveCamera(initialFov, aspect, 0.1, 100);
     if (aspect < 1.0) {
@@ -78,7 +98,7 @@ export class Scene3D {
     this.updateCameraPosition();
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
-    this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+    this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1835,8 +1855,7 @@ export class Scene3D {
 
   onResize() {
     if (!this.container || !this.camera || !this.renderer) return;
-    const width = this.container.clientWidth || window.innerWidth;
-    const height = this.container.clientHeight || window.innerHeight;
+    const { width, height } = this.getViewportDimensions();
     const aspect = width / height;
     this.camera.aspect = aspect;
 
