@@ -107,7 +107,6 @@ class App {
   }
 
   init() {
-    this.syncViewport();
     this.registerPWA();
     this.init3DScene();
     this.renderTreePicker();
@@ -191,11 +190,10 @@ class App {
 
     // Dynamic Viewport Sync on resize and orientationchange
     window.addEventListener('resize', () => {
-      this.syncViewport();
+      if (this.scene) this.scene.onResize();
     });
     window.addEventListener('orientationchange', () => {
       setTimeout(() => {
-        this.syncViewport();
         if (this.scene) this.scene.onResize();
       }, 120);
     });
@@ -1036,25 +1034,7 @@ class App {
     }
   }
 
-  syncViewport() {
-    const isIOS = typeof navigator !== 'undefined' && (/iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
-    const isStandalone = typeof window !== 'undefined' && 
-                         ((window.navigator && window.navigator.standalone === true) || 
-                          (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches));
-
-    let h = typeof window !== 'undefined' ? window.innerHeight : 844;
-    if (isIOS && isStandalone && window.screen && window.screen.height) {
-      h = Math.max(window.innerHeight, window.screen.height);
-    }
-    if (typeof document !== 'undefined') {
-      document.documentElement.style.setProperty('--app-height', `${h}px`);
-    }
-    return h;
-  }
-
   openModal(modalEl) {
-    this.syncViewport();
     modalEl.classList.add('active');
     // Lock document background and meta theme-color to deep modal backdrop (#0a1016)
     if (document.body) document.body.style.backgroundColor = '#0a1016';

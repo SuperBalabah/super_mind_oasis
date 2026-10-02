@@ -27,15 +27,15 @@ assert(manifest.short_name === '心靈島', 'manifest.json has short_name "心�
 assert(manifest.name === '心靈島 - 課題之森', 'manifest.json has name "心靈島 - 課題之森"');
 assert(readme.startsWith('# 心靈島 (Mind Island · 課題之森)'), 'README.md begins with "# 心靈島 (Mind Island · 課題之森)"');
 
-// 2. Full-screen Viewport & Uniform Modal Overlay (True physical screen, 100lvh & --app-height)
+// 2. Full-screen Viewport & Uniform Modal Overlay (Locked Body, Absolute Inset, Fixed Bottom Nav)
 const sceneCode = fs.readFileSync('src/scene3d.js', 'utf-8');
 const css = fs.readFileSync('styles.css', 'utf-8');
 const appCode = fs.readFileSync('src/app.js', 'utf-8');
 
-assert(css.includes('#app {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100%;\n  height: 100%;\n  height: 100lvh;\n  height: var(--app-height, 100lvh);'), '#app uses seamless 100lvh / --app-height full-screen positioning');
-assert(css.includes('.modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100%;\n  height: 100%;\n  height: 100lvh;\n  height: var(--app-height, 100lvh);'), '.modal-overlay covers 100% full-screen seamlessly');
-assert(css.includes('.floating-bottom-nav {\n  position: absolute;\n  bottom: 0;\n  left: 0;\n  width: 100%;\n  padding: 0 24px max(14px, env(safe-area-inset-bottom, 14px)) 24px;'), '.floating-bottom-nav is cleanly docked above home indicator');
-assert(appCode.includes('syncViewport()'), 'app.js implements dynamic syncViewport() for iOS Standalone PWA');
+assert(css.includes('html, body {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100%;\n  height: 100%;'), 'html/body is locked to fixed viewport without drift');
+assert(css.includes('#app {\n  position: absolute;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100%;\n  height: 100%;\n}'), '#app fills 100% of body without clipping overflow');
+assert(css.includes('.modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100%;\n  height: 100%;'), '.modal-overlay covers 100% full-screen seamlessly');
+assert(css.includes('.floating-bottom-nav {\n  position: fixed;\n  bottom: 0;\n  left: 0;\n  right: 0;\n  width: 100%;'), '.floating-bottom-nav is fixed directly to screen bottom');
 assert(appCode.includes('document.body.style.backgroundColor = \'#0a1016\''), 'app.js locks background to #0a1016 when modal opens');
 assert(sceneCode.includes('this.currentSkyHex = skyHex;'), 'scene3d.js tracks currentSkyHex for seamless restoration');
 
