@@ -40,7 +40,8 @@ export class Scene3D {
 
     // Pointer & Hold interaction on pets
     this.activePetPressed = null;
-    this.petHoldTimer = null;
+    this.petHoldThresholdTimer = null;
+    this.petFeedCompleteTimer = null;
     this.petHoldStartTime = 0;
     this.isPetHolding = false;
 
@@ -1282,18 +1283,12 @@ export class Scene3D {
       this.fireLight.intensity = 1.8;
     }
 
-    const skyColors = {
-      day: '#7fb8db',
-      sunset: '#281924',
-      night: '#0e131a',
-      rain: '#151b22'
-    };
-    const skyHex = skyColors[mode] || '#0e1419';
+    // Lock document body and html to deep dark (#0e1419) to prevent wine-red safe area/overscroll leaks beneath modals
     if (typeof document !== 'undefined') {
-      if (document.body) document.body.style.backgroundColor = skyHex;
-      if (document.documentElement) document.documentElement.style.backgroundColor = skyHex;
+      if (document.body) document.body.style.backgroundColor = '#0e1419';
+      if (document.documentElement) document.documentElement.style.backgroundColor = '#0e1419';
       const metaTheme = document.querySelector('meta[name="theme-color"]');
-      if (metaTheme) metaTheme.setAttribute('content', skyHex);
+      if (metaTheme) metaTheme.setAttribute('content', '#0e1419');
     }
   }
 
@@ -1343,6 +1338,13 @@ export class Scene3D {
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
+    // Prevent system context menu / callout on 3D canvas
+    el.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    });
+
     const getTouchDist = (e) => {
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -1354,7 +1356,7 @@ export class Scene3D {
       this.previousMousePosition = { x: e.clientX, y: e.clientY };
       this.dragDistance = 0;
 
-      // Check if pet was clicked on pointer down to immediately freeze & feed!
+      // Check if pet was clicked on pointer down
       const rect = el.getBoundingClientRect();
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -1369,28 +1371,38 @@ export class Scene3D {
         if (hitObj.userData && hitObj.userData.petId) {
           this.activePetPressed = hitObj;
           this.petHoldStartTime = Date.now();
-          this.isPetHolding = true;
+          this.isPetHolding = false;
 
           const petData = hitObj.userData.petData;
 
-          // FREEZE & EATING POSE IMMEDIATELY:
-          if (hitObj.userData.aiState) {
-            hitObj.userData.aiState.state = 'eating_hold';
-          }
-          if (hitObj.userData.feedDish) {
-            hitObj.userData.feedDish.visible = true;
-          }
+          // DO NOT freeze or show food dish immediately!
+          // Use 260ms threshold timer to clearly distinguish short-tap vs long-press hold:
+          const PET_HOLD_THRESHOLD = 260;
+          clearTimeout(this.petHoldThresholdTimer);
+          clearTimeout(this.petFeedCompleteTimer);
 
-          if (this.onPetHoldStart) this.onPetHoldStart(petData);
+          this.petHoldThresholdTimer = setTimeout(() => {
+            if (this.activePetPressed === hitObj && this.dragDistance < 12) {
+              // Crossed threshold -> definitely entering long-press feeding mode!
+              this.isPetHolding = true;
 
-          // Long-press timer (1300ms for a peaceful, deliberate feeding interaction)
-          const FEED_HOLD_TIME = 1300;
-          this.petHoldTimer = setTimeout(() => {
-            if (this.isPetHolding && this.activePetPressed === hitObj) {
-              this.isPetHolding = false;
-              this.completePetFeed(hitObj);
+              if (hitObj.userData.aiState) {
+                hitObj.userData.aiState.state = 'eating_hold';
+              }
+              if (hitObj.userData.feedDish) {
+                hitObj.userData.feedDish.visible = true;
+              }
+              if (this.onPetHoldStart) this.onPetHoldStart(petData);
+
+              // Hold for another 1000ms (total ~1260ms) to complete feeding
+              this.petFeedCompleteTimer = setTimeout(() => {
+                if (this.isPetHolding && this.activePetPressed === hitObj) {
+                  this.isPetHolding = false;
+                  this.completePetFeed(hitObj);
+                }
+              }, 1000);
             }
-          }, FEED_HOLD_TIME);
+          }, PET_HOLD_THRESHOLD);
         }
       }
     });
@@ -1402,10 +1414,12 @@ export class Scene3D {
       this.dragDistance += Math.abs(deltaX) + Math.abs(deltaY);
 
       if (this.dragDistance > 12) {
-        // Dragging camera cancels pet hold
+        // Dragging camera cancels pet hold & threshold
+        clearTimeout(this.petHoldThresholdTimer);
+        clearTimeout(this.petFeedCompleteTimer);
+
         if (this.isPetHolding) {
           this.isPetHolding = false;
-          clearTimeout(this.petHoldTimer);
           if (this.activePetPressed) {
             if (this.activePetPressed.userData.feedDish) {
               this.activePetPressed.userData.feedDish.visible = false;
@@ -1418,9 +1432,9 @@ export class Scene3D {
               this.activePetPressed.userData.aiState.state = 'idle';
               this.activePetPressed.userData.aiState.timer = 2.0;
             }
-            this.activePetPressed = null;
           }
         }
+        this.activePetPressed = null;
       }
 
       // Direct touch rotation: horizontal follows finger, vertical follows natural tilt
@@ -1435,29 +1449,31 @@ export class Scene3D {
 
       // Handle Pet Pointer Up
       if (this.activePetPressed) {
-        clearTimeout(this.petHoldTimer);
+        clearTimeout(this.petHoldThresholdTimer);
+        clearTimeout(this.petFeedCompleteTimer);
+
         const elapsed = Date.now() - this.petHoldStartTime;
         const petObj = this.activePetPressed;
+        const wasHolding = this.isPetHolding;
         this.activePetPressed = null;
+        this.isPetHolding = false;
 
-        // If it was a short tap (< 450ms)
-        if (elapsed < 450 && this.dragDistance < 12 && this.isPetHolding) {
-          this.isPetHolding = false;
-          // Hide dish immediately
+        // If released BEFORE threshold (< 260ms) and didn't drag: SHORT TAP!
+        if (elapsed < 260 && this.dragDistance < 12 && !wasHolding) {
+          // Never showed dish, never triggered chew
           if (petObj.userData.feedDish) petObj.userData.feedDish.visible = false;
 
-          // Gentle curious head raise (抬個頭看著你) - peaceful and subtle!
+          // Trigger looking up curiosity animation
           if (petObj.userData.aiState) {
             petObj.userData.aiState.state = 'looking_up';
-            petObj.userData.aiState.lookTimer = 2.0;
+            petObj.userData.aiState.lookTimer = 2.2;
           }
           if (this.onPetTap) this.onPetTap(petObj.userData.petData);
           return;
         }
 
-        // If released midway between tap and full feed (450ms ~ 1300ms)
-        if (this.isPetHolding) {
-          this.isPetHolding = false;
+        // If was holding (passed 260ms) but released before feeding completed
+        if (wasHolding) {
           if (petObj.userData.feedDish) petObj.userData.feedDish.visible = false;
           if (petObj.userData.headGroup) {
             petObj.userData.headGroup.position.y = petObj.userData.baseHeadY || 0.22;
@@ -1471,7 +1487,6 @@ export class Scene3D {
           return;
         }
 
-        this.isPetHolding = false;
         return;
       }
 

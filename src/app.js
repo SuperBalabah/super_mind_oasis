@@ -117,6 +117,9 @@ class App {
     this.updateSyncButtonStatus();
     this.checkRemoteSyncOnLaunch();
 
+    // Optimistic audio launch attempt on page load
+    sound.tryOptimisticAutoStart(this.settings.musicEnabled);
+
     setTimeout(() => {
       if (this.dom.hint) this.dom.hint.style.opacity = '0';
     }, 6000);
@@ -167,16 +170,23 @@ class App {
   setupEventListeners() {
     const unlockAudio = () => {
       sound.ensureContext();
-      sound.startBreezeLoop();
-      sound.startCampfireAudio();
       if (this.settings.musicEnabled) {
         sound.startAmbientMusic();
       }
-      window.removeEventListener('pointerdown', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
+      window.removeEventListener('pointerdown', unlockAudio, { capture: true });
+      window.removeEventListener('touchstart', unlockAudio, { capture: true });
+      window.removeEventListener('click', unlockAudio, { capture: true });
     };
-    window.addEventListener('pointerdown', unlockAudio);
-    window.addEventListener('touchstart', unlockAudio);
+    window.addEventListener('pointerdown', unlockAudio, { capture: true });
+    window.addEventListener('touchstart', unlockAudio, { capture: true });
+    window.addEventListener('click', unlockAudio, { capture: true });
+
+    // Suppress system contextmenu / callout on long press (except form fields)
+    window.addEventListener('contextmenu', (e) => {
+      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+      }
+    }, { passive: false });
 
     // Ambience
     const ambiences = ['sunset', 'night', 'rain', 'day'];
@@ -562,9 +572,13 @@ class App {
     }
   }
 
-  // Pet in-world short-tap greeting (Gentle curious head raise, zero annoying banners!)
+  // Pet in-world short-tap greeting (Gentle curious head raise, species voice)
   onPetTapped(petData) {
-    sound.playPetChirp();
+    if (petData && petData.species) {
+      sound.playPetVoice(petData.species);
+    } else {
+      sound.playPetChirp();
+    }
   }
 
   // Pet in-world long-press feeding (Direct in-game fulfillment)
