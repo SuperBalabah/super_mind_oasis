@@ -69,6 +69,7 @@
   - [x] 16.3 底欄三按鈕精準置底：採用緊密安全區間距 `max(14px, calc(env(safe-area-inset-bottom, 0px) + 6px))`，消除飛起浮空，緊密優雅貼齊 Home Bar 上緣
   - [x] 16.4 畫布與彈窗真正滿版覆蓋：實作 `getViewportDimensions()`，Standalone 模式下強制填滿螢幕物理像素，徹底杜絕 952px 處水平接縫
   - [x] 16.5 全套自動化驗證通過、Vite 正式打包構建並推送到 GitHub master
+  - [x] 16.6 點選動物詳情彈窗點擊 [回到小島] 按鈕補齊水滴音效（與點空白處回到小島音效一致）
 
 
 

@@ -68,6 +68,7 @@ assert(appCode.includes('this.dom.btnArchiveClose.addEventListener(\'click\', ()
 assert(appCode.includes('this.dom.btnPlantCancel.addEventListener(\'click\', () => {\n      sound.playWaterDrop();'), 'app.js btnPlantCancel plays water drop sound');
 assert(appCode.includes('this.dom.btnHarvestCancel.addEventListener(\'click\', () => {\n      sound.playWaterDrop();'), 'app.js btnHarvestCancel plays water drop sound');
 assert(appCode.includes('this.dom.btnNoteCancel.addEventListener(\'click\', () => {\n      sound.playWaterDrop();'), 'app.js btnNoteCancel plays water drop sound');
+assert(appCode.includes('this.dom.btnPetDetailClose.addEventListener(\'click\', () => {\n      sound.playWaterDrop();'), 'app.js btnPetDetailClose plays water drop sound');
 
 // 6. Complete Elimination of Blocking confirm() and alert()
 assert(!appCode.includes('confirm('), 'app.js has ZERO blocking confirm() calls');

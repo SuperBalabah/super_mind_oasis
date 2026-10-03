@@ -417,7 +417,10 @@ class App {
       this.scheduleCloudPush();
     });
 
-    this.dom.btnPetDetailClose.addEventListener('click', () => this.closeModal(this.dom.modalPetDetail));
+    this.dom.btnPetDetailClose.addEventListener('click', () => {
+      sound.playWaterDrop();
+      this.closeModal(this.dom.modalPetDetail);
+    });
     this.dom.btnPetReleaseAction.addEventListener('click', () => this.releaseCurrentPet());
 
     // Universal backdrop click: clicking outside the dialog on the blank area closes the modal
