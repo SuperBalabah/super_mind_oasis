@@ -1,5 +1,10 @@
 # 心靈島 (Mind Island · 課題之森)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Live Demo](https://img.shields.io/badge/Demo-Live%20PWA-brightgreen)](https://superbalabah.github.io/super_mind_oasis/)
+[![Stack: Three.js](https://img.shields.io/badge/Stack-Three.js%20%7C%20Vite-orange)](https://github.com/SuperBalabah/super_mind_oasis)
+
+
 專為 iPhone PWA 與桌面設計的 3D 治癒系心靈養成遊戲。
 將內心的焦慮、課題與困惑轉化為一粒種子；讓時間在背景陪伴它生長；當你跨過關卡時收穫它，凝結為屬於你一生的「年輪之書」。
 
