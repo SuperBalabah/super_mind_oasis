@@ -1,27 +1,30 @@
-# 🌿 Super Mind Oasis (心靈島 · 課題之森)
+# 🌿 Super Mind Oasis
+
+<p align="left">
+  <b>English</b> | <a href="README_zh-TW.md">繁體中文</a>
+</p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Live Demo](https://img.shields.io/badge/Demo-Live%20PWA-brightgreen)](https://superbalabah.github.io/super_mind_oasis/?lang=en)
 [![Stack: Three.js](https://img.shields.io/badge/Stack-Three.js%20%7C%20Vite-orange)](https://github.com/SuperBalabah/super_mind_oasis)
 
-> **A client-side 3D mindfulness & emotional inquiry PWA engineered with procedural Three.js shaders, algorithmic Web Audio synthesis, and a zero-server privacy architecture.**  
-> 專為行動裝置 (iOS PWA) 與桌面打造的 3D 沉浸式心靈養成遊戲，將深層焦慮轉化為自然生長之樹與一生收藏的年輪之書。
+> **A client-side 3D mindfulness & emotional inquiry PWA engineered with procedural Three.js shaders, algorithmic Web Audio synthesis, and a zero-server privacy architecture.**
 
 ---
 
-## 🌐 Live Demos & Language Editions (線上體驗與雙語入口)
+## 🌐 Live Demos & Language Editions
 
-| Language / 語言版本 | Live Demo URL / 線上網址 | Notes / 說明 |
+| Language Edition | Live Demo URL | Description |
 | :--- | :--- | :--- |
-| **🇺🇸 English Edition** | **[https://superbalabah.github.io/super_mind_oasis/?lang=en](https://superbalabah.github.io/super_mind_oasis/?lang=en)** | Boots directly into English for reviewers and international users. |
-| **🇹🇼 繁體中文 原生版** | **[https://superbalabah.github.io/super_mind_oasis/](https://superbalabah.github.io/super_mind_oasis/)** | 預設以原生繁體中文載入，適合日常寧靜沉浸與習慣記錄。 |
+| **🇺🇸 English Edition** | **[https://superbalabah.github.io/super_mind_oasis/?lang=en](https://superbalabah.github.io/super_mind_oasis/?lang=en)** | Boots directly into English for international users and reviewers. |
+| **🇹🇼 Traditional Chinese** | **[https://superbalabah.github.io/super_mind_oasis/](https://superbalabah.github.io/super_mind_oasis/)** | Native Traditional Chinese edition for daily mindful immersion. |
 
 > [!NOTE]
 > **Data Coexistence & Seamless Switching**: Both language URLs share the exact same local database and optional GitHub Gist cloud synchronization. Switching language never affects your saved trees, reflections, or habit companions. You can also toggle between `[中 / EN]` anytime via the button at the top-left corner.
 
 ---
 
-## 🇺🇸 English Project Overview
+## 📖 Project Overview
 
 ### 1. Philosophy & Clinical Motivation
 Conventional mental wellness apps frequently suffer from commercial subscription paywalls, server-side data extraction of intimate emotional logs, and anxiety-inducing gamification (e.g. punishing users with "withered plants" if they skip logging).
@@ -76,41 +79,6 @@ npm run build
 
 ---
 
-## 🇹🇼 繁體中文 專案介紹
+## 📄 License
 
-### 🌟 核心特色
-
-1. **頂級質感 3D 懸浮心靈綠洲 (Three.js)**
-   - 360° 觸控軌道旋轉與雙指縮放，自帶物理減速阻尼手感。
-   - 柔和的體積光、晨曦、暖陽黃昏、靜謐星夜與綿綿細雨四種氛圍切換。
-   - 隨微風輕晃的枝葉、動態水波倒影、空中漂浮的光斑微塵與夜間螢火蟲。
-2. **課題之樹生命週期 (Mind Garden System)**
-   - **播種**：寫下當下的焦慮或課題，挑選專屬象徵樹種（勇氣之橡、通透之杏、沈思白樺、釋懷藍花楹）。
-   - **靜默生長**：絕無「不登入就枯萎」的懲罰，隨現實時間推移自然生長。
-   - **心境記錄**：隨時記錄進展與感悟，如同在樹幹刻下思緒年輪。
-   - **頓悟收穫**：問題解決時寫下覆盤心得，大樹開花結果，凝結為永久收藏的年輪徽章。
-3. **100% 離線純合成 Web Audio 療癒音效**
-   - 免下載任何外部音效包，純算法合成 288Hz 空靈頌缽、清脆水滴、柔和微風與雨夜白噪音。
-4. **全螢幕 iOS PWA 沉浸支援**
-   - 支援加入 iPhone 主畫面，自動隱藏 Safari 網址列與工具列，適配瀏海與動態島安全區域。
-   - 離線 Service Worker 快取，飛航模式照樣秒開。
-5. **免費跨設備 GitHub Gist 雲端同步系統**
-   - 支援無伺服器 (Serverless) 純靜態跨設備同步，使用私有 Secret Gist 保存資料，保護個人隱私。
-   - 雙向自動背景同步：開啟 App 自動比對雲端最新進度，操作時 1.5 秒背景防抖靜默上傳。
-   - 支援手動上傳與拉取覆蓋，並即時顯示上次同步時間。
-
----
-
-### 📱 iPhone 遊玩方式
-
-#### 方式 A：GitHub Pages 雲端隨開即玩（最推薦，免同一 Wi-Fi）
-1. 在 iPhone 的 Safari 網址列直接打開：  
-   **[https://superbalabah.github.io/super_mind_oasis/](https://superbalabah.github.io/super_mind_oasis/)**
-2. 點擊 Safari 底部的「**分享**」按鈕（向上箭頭）。
-3. 選擇「**加入主畫面 (Add to Home Screen)**」。
-4. 點擊「新增」後，iPhone 桌面即生成專屬全螢幕 App！
-
-#### 方式 B：本地 Wi-Fi 即時熱更新（局域網連線）
-1. 確保 iPhone 與電腦連線至同一個 Wi-Fi 網絡。
-2. 在 iPhone Safari 輸入本地開發伺服器 IP（如：`http://192.168.x.x:5173/`）。
-3. 享受即時熱更新的開發與遊玩體驗。
+This project is open-source under the [MIT License](LICENSE).
