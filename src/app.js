@@ -1,7 +1,8 @@
-// V3.2 Main Application Controller for Super Mind Oasis
+// V3.3 Main Application Controller for Super Mind Oasis (i18n Bilingual Enabled)
 import { Scene3D } from './scene3d.js';
 import { Storage, TREE_TYPES, PET_SPECIES, GistSync } from './storage.js';
 import { sound } from './audio.js';
+import { i18n } from './i18n.js';
 
 class App {
   constructor() {
@@ -22,6 +23,8 @@ class App {
     // DOM Elements
     this.dom = {
       canvasContainer: document.getElementById('canvas-container'),
+      btnLang: document.getElementById('btn-lang'),
+      langIndicator: document.getElementById('lang-indicator'),
       btnAmbience: document.getElementById('btn-ambience'),
       btnMusic: document.getElementById('btn-music'),
       btnSound: document.getElementById('btn-sound'),
@@ -44,6 +47,8 @@ class App {
       cardTreeWorry: document.getElementById('card-tree-worry'),
       btnHoldNurture: document.getElementById('btn-hold-nurture'),
       holdProgressFill: document.getElementById('hold-progress-fill'),
+      labelHoldNurture: document.getElementById('label-hold-nurture'),
+      labelHoldSub: document.getElementById('label-hold-sub'),
       btnTreeHarvest: document.getElementById('btn-tree-harvest'),
       btnTreeDelete: document.getElementById('btn-tree-delete'),
 
@@ -109,9 +114,7 @@ class App {
   init() {
     this.registerPWA();
     this.init3DScene();
-    this.renderTreePicker();
-    this.renderPetSpeciesPicker();
-    this.renderTopPetsWidget();
+    this.applyLanguage();
     this.setupEventListeners();
     this.applySettings();
     this.updateSyncButtonStatus();
@@ -167,6 +170,170 @@ class App {
     }, duration);
   }
 
+  applyLanguage() {
+    const lang = i18n.lang;
+    document.documentElement.lang = lang === 'en' ? 'en' : 'zh-TW';
+
+    // 1. Language Toggle Button Badge & Title
+    if (this.dom.langIndicator) {
+      this.dom.langIndicator.textContent = lang === 'en' ? 'EN' : '中';
+    }
+    if (this.dom.btnLang) {
+      this.dom.btnLang.title = i18n.t('btn_lang_title');
+    }
+
+    // 2. Top Controls & Hint
+    if (this.dom.btnAmbience) this.dom.btnAmbience.title = i18n.t('btn_ambience_title');
+    if (this.dom.btnMusic) this.dom.btnMusic.title = i18n.t('btn_music_title');
+    if (this.dom.btnSound) this.dom.btnSound.title = i18n.t('btn_sound_title');
+    this.updateSyncButtonStatus();
+    if (this.dom.hint) this.dom.hint.textContent = i18n.t('center_hint');
+
+    // 3. Bottom Navigation
+    if (this.dom.btnPlantOpen) this.dom.btnPlantOpen.title = i18n.t('btn_plant_title');
+    if (this.dom.btnArchiveOpen) this.dom.btnArchiveOpen.title = i18n.t('btn_archive_title');
+    if (this.dom.btnHabitOpen) this.dom.btnHabitOpen.title = i18n.t('btn_habit_title');
+
+    // 4. Tree Inspection Card Action Labels
+    const daysLabel = document.getElementById('card-tree-days-label');
+    if (daysLabel) daysLabel.textContent = i18n.t('card_stats_days_prefix');
+    const nurtureLabel = document.getElementById('card-tree-nurture-label');
+    if (nurtureLabel) nurtureLabel.textContent = i18n.t('card_stats_nurture_prefix');
+    if (this.dom.labelHoldNurture) this.dom.labelHoldNurture.textContent = i18n.t('btn_hold_nurture_label');
+    if (this.dom.labelHoldSub) this.dom.labelHoldSub.textContent = i18n.t('btn_hold_nurture_sub');
+    if (this.dom.btnTreeHarvest) this.dom.btnTreeHarvest.textContent = i18n.t('btn_tree_harvest');
+    if (this.dom.btnTreeDelete && this.dom.btnTreeDelete.dataset.confirming !== 'true') {
+      this.dom.btnTreeDelete.textContent = i18n.t('btn_tree_delete');
+    }
+
+    // 5. Modal Static Elements
+    // Modal Plant
+    if (this.dom.modalPlant) {
+      const title = this.dom.modalPlant.querySelector('.modal-header-title');
+      if (title) title.textContent = i18n.t('plant_modal_title');
+      const desc = this.dom.modalPlant.querySelector('.modal-header-desc');
+      if (desc) desc.textContent = i18n.t('plant_modal_desc');
+      const labels = this.dom.modalPlant.querySelectorAll('.field-label');
+      if (labels[0]) labels[0].textContent = i18n.t('plant_field_title_label');
+      if (labels[1]) labels[1].textContent = i18n.t('plant_field_worry_label');
+      if (labels[2]) labels[2].textContent = i18n.t('plant_field_tree_label');
+      if (this.dom.plantTitle) this.dom.plantTitle.placeholder = i18n.t('plant_field_title_placeholder');
+      if (this.dom.plantWorry) this.dom.plantWorry.placeholder = i18n.t('plant_field_worry_placeholder');
+      if (this.dom.btnPlantCancel) this.dom.btnPlantCancel.textContent = i18n.t('btn_plant_cancel');
+      const submitBtn = this.dom.modalPlant.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.textContent = i18n.t('btn_plant_submit');
+    }
+
+    // Modal Note
+    if (this.dom.modalNote) {
+      const title = this.dom.modalNote.querySelector('.modal-header-title');
+      if (title) title.textContent = i18n.t('note_modal_title');
+      const desc = this.dom.modalNote.querySelector('.modal-header-desc');
+      if (desc) desc.textContent = i18n.t('note_modal_desc');
+      if (this.dom.noteText) this.dom.noteText.placeholder = i18n.t('note_field_placeholder');
+      if (this.dom.btnNoteCancel) this.dom.btnNoteCancel.textContent = i18n.t('btn_note_cancel');
+      const submitBtn = this.dom.modalNote.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.textContent = i18n.t('btn_note_submit');
+    }
+
+    // Modal Harvest
+    if (this.dom.modalHarvest) {
+      const title = this.dom.modalHarvest.querySelector('.modal-header-title');
+      if (title) title.textContent = i18n.t('harvest_modal_title');
+      const desc = this.dom.modalHarvest.querySelector('.modal-header-desc');
+      if (desc) desc.textContent = i18n.t('harvest_modal_desc');
+      const label = this.dom.modalHarvest.querySelector('.field-label');
+      if (label) label.textContent = i18n.t('harvest_field_label');
+      if (this.dom.harvestInsight) this.dom.harvestInsight.placeholder = i18n.t('harvest_field_placeholder');
+      if (this.dom.btnHarvestCancel) this.dom.btnHarvestCancel.textContent = i18n.t('btn_harvest_cancel');
+      const submitBtn = this.dom.modalHarvest.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.textContent = i18n.t('btn_harvest_submit');
+    }
+
+    // Modal Archive
+    if (this.dom.modalArchive) {
+      const title = this.dom.modalArchive.querySelector('.modal-header-title');
+      if (title) title.textContent = i18n.t('archive_modal_title');
+      const desc = this.dom.modalArchive.querySelector('.modal-header-desc');
+      if (desc) desc.textContent = i18n.t('archive_modal_desc');
+      if (this.dom.btnArchiveClose) this.dom.btnArchiveClose.textContent = i18n.t('btn_archive_close');
+    }
+
+    // Modal Adopt Pet
+    if (this.dom.modalAdopt) {
+      const title = this.dom.modalAdopt.querySelector('.modal-header-title');
+      if (title) title.textContent = i18n.t('adopt_modal_title');
+      const desc = this.dom.modalAdopt.querySelector('.modal-header-desc');
+      if (desc) desc.textContent = i18n.t('adopt_modal_desc');
+      const labels = this.dom.modalAdopt.querySelectorAll('.field-label');
+      if (labels[0]) labels[0].textContent = i18n.t('adopt_field_species_label');
+      if (labels[1]) labels[1].textContent = i18n.t('adopt_field_name_label');
+      if (labels[2]) labels[2].textContent = i18n.t('adopt_field_habit_label');
+      if (this.dom.btnAdoptCancel) this.dom.btnAdoptCancel.textContent = i18n.t('btn_adopt_cancel');
+      const submitBtn = this.dom.modalAdopt.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.textContent = i18n.t('btn_adopt_submit');
+    }
+
+    // Modal Pet Detail
+    if (this.dom.modalPetDetail) {
+      const habitHdr = this.dom.modalPetDetail.querySelector('#pet-detail-habit-label');
+      if (habitHdr) habitHdr.textContent = i18n.t('pet_detail_habit_label');
+      const careHdr = this.dom.modalPetDetail.querySelector('#pet-detail-care-label');
+      if (careHdr) careHdr.textContent = i18n.t('pet_detail_care_prefix');
+      if (this.dom.btnPetReleaseAction && this.dom.btnPetReleaseAction.dataset.confirming !== 'true') {
+        this.dom.btnPetReleaseAction.textContent = i18n.t('btn_pet_release');
+      }
+      if (this.dom.btnPetDetailClose) this.dom.btnPetDetailClose.textContent = i18n.t('btn_pet_detail_close');
+    }
+
+    // Modal Sync
+    if (this.dom.modalSync) {
+      const title = this.dom.modalSync.querySelector('.modal-header-title');
+      if (title) title.textContent = i18n.t('sync_modal_title');
+      const desc = this.dom.modalSync.querySelector('.modal-header-desc');
+      if (desc) desc.textContent = i18n.t('sync_modal_desc');
+      const switchTitle = this.dom.modalSync.querySelector('.sync-switch-title');
+      if (switchTitle) switchTitle.textContent = i18n.t('sync_switch_title');
+      const switchSub = this.dom.modalSync.querySelector('.sync-switch-sub');
+      if (switchSub) switchSub.textContent = i18n.t('sync_switch_sub');
+      const syncLabels = this.dom.modalSync.querySelectorAll('.field-label');
+      if (syncLabels[0]) syncLabels[0].textContent = i18n.t('sync_token_label');
+      if (syncLabels[1]) syncLabels[1].textContent = i18n.t('sync_gist_label');
+      const tokenLink = this.dom.modalSync.querySelector('.sync-help-link');
+      if (tokenLink) tokenLink.textContent = i18n.t('sync_token_link');
+      const hints = this.dom.modalSync.querySelectorAll('.field-hint-text');
+      if (hints[0]) hints[0].textContent = i18n.t('sync_token_hint');
+      if (hints[1]) hints[1].textContent = i18n.t('sync_gist_hint');
+      if (this.dom.btnCreateGist) this.dom.btnCreateGist.textContent = i18n.t('btn_create_gist');
+      if (this.dom.btnManualPush) {
+        const span = this.dom.btnManualPush.querySelector('span');
+        if (span) span.textContent = i18n.t('btn_manual_push');
+      }
+      if (this.dom.btnManualPull) {
+        const span = this.dom.btnManualPull.querySelector('span');
+        if (span) span.textContent = i18n.t('btn_manual_pull');
+      }
+      if (this.dom.btnSyncCancel) this.dom.btnSyncCancel.textContent = i18n.t('btn_sync_cancel');
+      const saveBtn = this.dom.formSyncSettings ? this.dom.formSyncSettings.querySelector('button[type="submit"]') : null;
+      if (saveBtn) saveBtn.textContent = i18n.t('btn_sync_save');
+      this.updateSyncTimeDisplay();
+    }
+
+    // 6. Refresh Dynamic Lists
+    this.renderTreePicker();
+    this.renderPetSpeciesPicker();
+    this.renderTopPetsWidget();
+    if (this.selectedTree) {
+      this.updateTreeCardContent(this.selectedTree);
+    }
+    if (this.currentInspectingPet && this.dom.modalPetDetail && this.dom.modalPetDetail.classList.contains('active')) {
+      this.openPetDetailModal(this.currentInspectingPet);
+    }
+    if (this.dom.modalArchive && this.dom.modalArchive.classList.contains('active')) {
+      this.renderRings();
+    }
+  }
+
   setupEventListeners() {
     const unlockAudio = () => {
       sound.ensureContext();
@@ -197,6 +364,17 @@ class App {
         if (this.scene) this.scene.onResize();
       }, 120);
     });
+
+    // Language Toggle
+    if (this.dom.btnLang) {
+      this.dom.btnLang.addEventListener('click', () => {
+        sound.ensureContext();
+        sound.playWaterDrop();
+        i18n.toggleLanguage();
+        this.applyLanguage();
+        this.showToast(i18n.t('toast_switched_lang'));
+      });
+    }
 
     // Ambience
     const ambiences = ['sunset', 'night', 'rain', 'day'];
@@ -252,7 +430,7 @@ class App {
         if (btn.dataset.confirming === 'true') {
           clearTimeout(treeDeleteTimer);
           btn.dataset.confirming = 'false';
-          btn.textContent = '剷除此樹';
+          btn.textContent = i18n.t('btn_tree_delete');
           btn.style.color = '';
           btn.style.borderColor = '';
 
@@ -262,11 +440,11 @@ class App {
           this.scene.updateTrees(Storage.getTrees());
           sound.playWaterDrop();
           sound.ensureContext();
-          this.showToast(`已剷除【${tree.title}】`);
+          this.showToast(i18n.t('toast_deleted_tree', { title: tree.title }));
           this.scheduleCloudPush();
         } else {
           btn.dataset.confirming = 'true';
-          btn.textContent = '確定剷除？再次點擊確認';
+          btn.textContent = i18n.t('btn_tree_delete_confirm');
           btn.style.color = '#ff8080';
           btn.style.borderColor = 'rgba(255, 128, 128, 0.5)';
           sound.playWaterDrop();
@@ -275,7 +453,7 @@ class App {
           treeDeleteTimer = setTimeout(() => {
             if (btn) {
               btn.dataset.confirming = 'false';
-              btn.textContent = '剷除此樹';
+              btn.textContent = i18n.t('btn_tree_delete');
               btn.style.color = '';
               btn.style.borderColor = '';
             }
@@ -413,7 +591,7 @@ class App {
       this.closeModal(this.dom.modalAdopt);
       this.scene.updatePets(Storage.getPets());
       this.renderTopPetsWidget();
-      this.showToast(`歡迎【${newPet.name}】來到心靈綠洲`);
+      this.showToast(i18n.t('toast_adopted_pet', { name: newPet.name }));
       this.scheduleCloudPush();
     });
 
@@ -519,14 +697,15 @@ class App {
     container.innerHTML = '';
 
     Object.values(TREE_TYPES).forEach(type => {
+      const info = i18n.getTreeInfo(type.id);
       const item = document.createElement('div');
       item.className = `tree-type-item ${type.id === this.selectedTreeType ? 'selected' : ''}`;
       item.innerHTML = `
         <div class="tree-preview-svg">${type.svgIcon}</div>
         <div class="tree-type-text-wrap">
-          <div class="type-item-name">${type.name}</div>
-          <div class="type-item-virtue">${type.virtue}</div>
-          <div class="type-item-desc">${type.description}</div>
+          <div class="type-item-name">${info.name}</div>
+          <div class="type-item-virtue">${info.virtue}</div>
+          <div class="type-item-desc">${info.description}</div>
         </div>
       `;
       item.addEventListener('click', () => {
@@ -546,16 +725,17 @@ class App {
     sound.playSingingBowl(320);
   }
 
-  updateTreeCardContent(tree) {
-    const typeInfo = TREE_TYPES[tree.treeType] || TREE_TYPES.oak;
+  updateTreeCardContent(rawTree) {
+    const tree = i18n.getLocalizedTree(rawTree);
+    const typeInfo = i18n.getTreeInfo(tree.treeType);
     const now = Date.now();
     const days = Math.max(0, Math.floor((now - tree.plantedAt) / (1000 * 60 * 60 * 24)));
 
     this.dom.cardTreeType.textContent = `${typeInfo.name} · ${typeInfo.virtue}`;
     this.dom.cardTreeTitle.textContent = tree.title;
-    this.dom.cardTreeDays.textContent = `${days === 0 ? '今天' : days + ' 天'}`;
-    this.dom.cardTreeNurture.textContent = `${tree.nurtureCount || 0} 次`;
-    this.dom.cardTreeWorry.textContent = tree.initialWorry || '無記載具體困擾，靜心播下的課題。';
+    this.dom.cardTreeDays.textContent = days === 0 ? i18n.t('card_days_today') : i18n.t('card_days_rooted', { days });
+    this.dom.cardTreeNurture.textContent = i18n.t('card_times', { count: tree.nurtureCount || 0 });
+    this.dom.cardTreeWorry.textContent = tree.initialWorry || i18n.t('card_no_worry');
   }
 
   closeTreeCard() {
@@ -570,15 +750,16 @@ class App {
     container.innerHTML = '';
 
     Object.values(PET_SPECIES).forEach(sp => {
+      const info = i18n.getPetSpeciesInfo(sp.id);
       const opt = document.createElement('div');
       opt.className = `pet-species-option ${sp.id === this.selectedPetSpecies ? 'selected' : ''}`;
-      opt.textContent = sp.name;
+      opt.textContent = info.name;
       opt.addEventListener('click', () => {
         container.querySelectorAll('.pet-species-option').forEach(c => c.classList.remove('selected'));
         opt.classList.add('selected');
         this.selectedPetSpecies = sp.id;
-        this.dom.adoptPetName.placeholder = `夥伴名字（預設：${sp.name}）`;
-        this.dom.adoptPetHabit.placeholder = `所守護的習慣（例如：${sp.defaultHabit}）`;
+        this.dom.adoptPetName.placeholder = i18n.t('adopt_field_name_placeholder_prefix', { species: info.name });
+        this.dom.adoptPetHabit.placeholder = i18n.t('adopt_field_habit_placeholder_prefix', { habit: info.defaultHabit });
         sound.playPetChirp();
       });
       container.appendChild(opt);
@@ -592,18 +773,19 @@ class App {
     if (!container) return;
     container.innerHTML = '';
 
-    pets.forEach(pet => {
+    pets.forEach(rawPet => {
+      const pet = i18n.getLocalizedPet(rawPet);
       const sp = PET_SPECIES[pet.species] || PET_SPECIES.sheep;
       const pill = document.createElement('div');
       pill.className = 'top-pet-pill';
-      pill.title = `點擊查看【${pet.name}】詳情或放生`;
+      pill.title = i18n.lang === 'en' ? `View [${pet.name}] details or release` : `點擊查看【${pet.name}】詳情或放生`;
       pill.innerHTML = `
         <div class="top-pet-avatar">${sp.svgAvatar || ''}</div>
         <span class="top-pet-name">${pet.name}</span>
       `;
       pill.addEventListener('click', () => {
         sound.playPetChirp();
-        this.openPetDetailModal(pet);
+        this.openPetDetailModal(rawPet);
       });
       container.appendChild(pill);
     });
@@ -613,25 +795,27 @@ class App {
     this.renderPetSpeciesPicker();
     this.dom.adoptPetName.value = '';
     this.dom.adoptPetHabit.value = '';
-    const sp = PET_SPECIES[this.selectedPetSpecies] || PET_SPECIES.sheep;
-    this.dom.adoptPetName.placeholder = `夥伴名字（預設：${sp.name}）`;
-    this.dom.adoptPetHabit.placeholder = `所守護的習慣（例如：${sp.defaultHabit}）`;
+    const info = i18n.getPetSpeciesInfo(this.selectedPetSpecies);
+    this.dom.adoptPetName.placeholder = i18n.t('adopt_field_name_placeholder_prefix', { species: info.name });
+    this.dom.adoptPetHabit.placeholder = i18n.t('adopt_field_habit_placeholder_prefix', { habit: info.defaultHabit });
     this.openModal(this.dom.modalAdopt);
   }
 
-  openPetDetailModal(pet) {
-    this.currentInspectingPet = pet;
+  openPetDetailModal(rawPet) {
+    this.currentInspectingPet = rawPet;
+    const pet = i18n.getLocalizedPet(rawPet);
     const sp = PET_SPECIES[pet.species] || PET_SPECIES.sheep;
+    const info = i18n.getPetSpeciesInfo(pet.species);
     this.dom.petDetailAvatar.innerHTML = sp.svgAvatar || '';
     this.dom.petDetailName.textContent = pet.name;
-    this.dom.petDetailSpecies.textContent = sp.name;
+    this.dom.petDetailSpecies.textContent = info.name;
     this.dom.petDetailHabit.textContent = pet.habitTitle;
-    this.dom.petDetailCare.textContent = `${pet.careCount || 1} 次`;
+    this.dom.petDetailCare.textContent = i18n.t('card_times', { count: pet.careCount || 1 });
 
     // Reset release button confirmation state
     if (this.dom.btnPetReleaseAction) {
       this.dom.btnPetReleaseAction.dataset.confirming = 'false';
-      this.dom.btnPetReleaseAction.textContent = '放生此夥伴';
+      this.dom.btnPetReleaseAction.textContent = i18n.t('btn_pet_release');
       this.dom.btnPetReleaseAction.style.color = '';
       this.dom.btnPetReleaseAction.style.borderColor = '';
     }
@@ -642,28 +826,29 @@ class App {
   releaseCurrentPet() {
     sound.ensureContext();
     if (!this.currentInspectingPet) return;
-    const pet = this.currentInspectingPet;
+    const rawPet = this.currentInspectingPet;
+    const pet = i18n.getLocalizedPet(rawPet);
     const btn = this.dom.btnPetReleaseAction;
 
     if (btn && btn.dataset.confirming === 'true') {
       clearTimeout(this.petReleaseTimer);
       btn.dataset.confirming = 'false';
-      btn.textContent = '放生此夥伴';
+      btn.textContent = i18n.t('btn_pet_release');
       btn.style.color = '';
       btn.style.borderColor = '';
 
-      Storage.deletePet(pet.id);
+      Storage.deletePet(rawPet.id);
       this.scene.updatePets(Storage.getPets());
       this.renderTopPetsWidget();
       this.closeModal(this.dom.modalPetDetail);
       sound.playWaterDrop();
       sound.ensureContext();
-      this.showToast(`【${pet.name}】已回歸山林大自然`);
+      this.showToast(i18n.t('toast_released_pet', { name: pet.name }));
       this.currentInspectingPet = null;
       this.scheduleCloudPush();
     } else if (btn) {
       btn.dataset.confirming = 'true';
-      btn.textContent = '確定放生？再次點擊確認';
+      btn.textContent = i18n.t('btn_pet_release_confirm');
       btn.style.color = '#ff8080';
       btn.style.borderColor = 'rgba(255, 128, 128, 0.5)';
       sound.playWaterDrop();
@@ -672,7 +857,7 @@ class App {
       this.petReleaseTimer = setTimeout(() => {
         if (btn) {
           btn.dataset.confirming = 'false';
-          btn.textContent = '放生此夥伴';
+          btn.textContent = i18n.t('btn_pet_release');
           btn.style.color = '';
           btn.style.borderColor = '';
         }
@@ -690,13 +875,14 @@ class App {
   }
 
   // Pet in-world long-press feeding (Direct in-game fulfillment)
-  onPetFed(petData) {
-    Storage.nurturePet(petData.id);
+  onPetFed(rawPet) {
+    Storage.nurturePet(rawPet.id);
+    const pet = i18n.getLocalizedPet(rawPet);
     sound.playFeedingNibble();
     try {
       if ('vibrate' in navigator) navigator.vibrate([30, 45, 30]);
     } catch (e) {}
-    this.showToast(`已陪伴【${petData.name}】· 守護「${petData.habitTitle}」`);
+    this.showToast(i18n.t('toast_cared_pet', { name: pet.name, habit: pet.habitTitle }));
     this.renderTopPetsWidget();
     this.scheduleCloudPush();
   }
@@ -714,25 +900,27 @@ class App {
     ];
 
     if (allItems.length === 0) {
-      container.innerHTML = '<div style="text-align:center; padding:30px; color:#7e8e9e; font-size:0.85rem;">目前尚未有任何課題。點擊下方播種按鈕種下你的第一棵樹。</div>';
+      container.innerHTML = `<div style="text-align:center; padding:30px; color:#7e8e9e; font-size:0.85rem;">${i18n.t('archive_empty')}</div>`;
     } else {
-      allItems.forEach(item => {
+      allItems.forEach(rawItem => {
+        const item = rawItem.isActive ? i18n.getLocalizedTree(rawItem) : i18n.getLocalizedRing(rawItem);
         const card = document.createElement('div');
         card.className = 'archive-tree-card';
-        const typeInfo = TREE_TYPES[item.treeType] || TREE_TYPES.oak;
+        const typeInfo = i18n.getTreeInfo(item.treeType);
+        const locale = i18n.lang === 'en' ? 'en-US' : 'zh-TW';
 
         const now = Date.now();
         const days = item.daysElapsed || Math.max(1, Math.round((now - item.plantedAt) / (1000 * 60 * 60 * 24)));
-        const plantedDateStr = new Date(item.plantedAt).toLocaleDateString('zh-TW', { year: 'numeric', month: 'numeric', day: 'numeric' });
-        const harvestDateStr = item.harvestedAt ? new Date(item.harvestedAt).toLocaleDateString('zh-TW', { year: 'numeric', month: 'numeric', day: 'numeric' }) : null;
+        const plantedDateStr = new Date(item.plantedAt).toLocaleDateString(locale, { year: 'numeric', month: 'numeric', day: 'numeric' });
+        const harvestDateStr = item.harvestedAt ? new Date(item.harvestedAt).toLocaleDateString(locale, { year: 'numeric', month: 'numeric', day: 'numeric' }) : null;
 
         let notesTimelineHTML = '';
         if (item.notes && item.notes.length > 0) {
           notesTimelineHTML = item.notes.map(n => {
-            const dateStr = new Date(n.timestamp).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' });
+            const dateStr = new Date(n.timestamp).toLocaleDateString(locale, { month: 'numeric', day: 'numeric' });
             return `
               <div class="timeline-step">
-                <div class="timeline-step-title">${dateStr} · 沿途感悟</div>
+                <div class="timeline-step-title">${dateStr} · ${i18n.lang === 'en' ? 'Reflection' : '沿途感悟'}</div>
                 <div class="timeline-step-content">${n.text}</div>
               </div>
             `;
@@ -740,22 +928,22 @@ class App {
         } else {
           notesTimelineHTML = `
             <div class="timeline-step">
-              <div class="timeline-step-title">生長沉澱中</div>
-              <div class="timeline-step-content" style="font-style:italic; color:#8ea0b0;">在歲月中靜默吸納養分...</div>
+              <div class="timeline-step-title">${i18n.lang === 'en' ? 'Quiet Growth' : '生長沉澱中'}</div>
+              <div class="timeline-step-content" style="font-style:italic; color:#8ea0b0;">${i18n.t('archive_step_growing')}</div>
             </div>
           `;
         }
 
         card.innerHTML = `
           <div class="tree-card-top-row">
-            <div class="tree-visual-illustration">${typeInfo.svgIcon}</div>
+            <div class="tree-visual-illustration">${(TREE_TYPES[item.treeType] || TREE_TYPES.oak).svgIcon}</div>
             <div class="tree-card-info">
               <div class="tree-card-name">${item.title}</div>
-              <div class="tree-card-sub">${typeInfo.name} · ${item.isActive ? '島上生長中' : '已釋懷圓滿'} · 歷時 ${days} 天</div>
+              <div class="tree-card-sub">${typeInfo.name} · ${item.isActive ? i18n.t('archive_status_growing') : i18n.t('archive_status_harvested')} · ${i18n.t('card_days_rooted', { days })}</div>
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
               ${!item.isActive ? `
-                <button type="button" class="btn-ghost-danger btn-delete-ring" data-id="${item.id}" style="padding:4px 8px; font-size:0.7rem;" title="刪除此年輪記錄">刪除</button>
+                <button type="button" class="btn-ghost-danger btn-delete-ring" data-id="${rawItem.id}" style="padding:4px 8px; font-size:0.7rem;" title="${i18n.t('btn_delete_ring')}">${i18n.t('btn_delete_ring')}</button>
               ` : ''}
               <div class="tree-card-arrow">❯</div>
             </div>
@@ -763,15 +951,15 @@ class App {
 
           <div class="journey-timeline-drawer">
             <div class="timeline-step">
-              <div class="timeline-step-title">${plantedDateStr} · 播下種子與困擾</div>
-              <div class="timeline-step-content">${item.initialWorry || '無記載具體困擾，純粹立下的心靈課題。'}</div>
+              <div class="timeline-step-title">${plantedDateStr} · ${i18n.t('archive_step_planted')}</div>
+              <div class="timeline-step-content">${item.initialWorry || i18n.t('card_no_worry')}</div>
             </div>
 
             ${notesTimelineHTML}
 
             ${!item.isActive ? `
               <div class="timeline-step">
-                <div class="timeline-step-title" style="color:var(--accent-gold);">${harvestDateStr} · 破局頓悟</div>
+                <div class="timeline-step-title" style="color:var(--accent-gold);">${harvestDateStr} · ${i18n.t('archive_step_harvest')}</div>
                 <div class="timeline-step-content" style="color:#fff1c4; font-weight:500;">“ ${item.insight} ”</div>
               </div>
             ` : ''}
@@ -792,15 +980,15 @@ class App {
 
             if (deleteRingBtn.dataset.confirming === 'true') {
               clearTimeout(ringDeleteTimer);
-              Storage.deleteRing(item.id);
+              Storage.deleteRing(rawItem.id);
               sound.playWaterDrop();
               sound.ensureContext();
               this.openArchiveModal();
-              this.showToast(`已刪除【${item.title}】年輪記錄`);
+              this.showToast(i18n.t('toast_deleted_ring', { title: item.title }));
               this.scheduleCloudPush();
             } else {
               deleteRingBtn.dataset.confirming = 'true';
-              deleteRingBtn.textContent = '確定？';
+              deleteRingBtn.textContent = i18n.t('btn_delete_ring_confirm');
               deleteRingBtn.style.color = '#ff7070';
               deleteRingBtn.style.borderColor = 'rgba(255, 112, 112, 0.5)';
               sound.playWaterDrop();
@@ -809,7 +997,7 @@ class App {
               ringDeleteTimer = setTimeout(() => {
                 if (deleteRingBtn) {
                   deleteRingBtn.dataset.confirming = 'false';
-                  deleteRingBtn.textContent = '刪除';
+                  deleteRingBtn.textContent = i18n.t('btn_delete_ring');
                   deleteRingBtn.style.color = '';
                   deleteRingBtn.style.borderColor = '';
                 }
@@ -830,7 +1018,7 @@ class App {
     if (!this.dom.btnSync) return;
     const isConfigured = Boolean(this.syncConfig.enabled && this.syncConfig.token && this.syncConfig.gistId);
     this.dom.btnSync.classList.toggle('connected', isConfigured);
-    this.dom.btnSync.title = isConfigured ? '雲端共鳴 · 已連線 (點擊同步或設定)' : '雲端共鳴 · 跨設備同步 (未連線)';
+    this.dom.btnSync.title = isConfigured ? i18n.t('btn_sync_title_connected') : i18n.t('btn_sync_title_disconnected');
   }
 
   setSyncingVisual(isSyncing) {
@@ -844,13 +1032,14 @@ class App {
   updateSyncTimeDisplay() {
     if (!this.dom.syncLastTimeText) return;
     if (!this.syncConfig.lastSyncTime) {
-      this.dom.syncLastTimeText.textContent = '上次同步：尚未同步';
+      this.dom.syncLastTimeText.textContent = i18n.t('sync_last_never');
       return;
     }
     const d = new Date(this.syncConfig.lastSyncTime);
-    const dateStr = d.toLocaleDateString('zh-TW', { year: 'numeric', month: 'numeric', day: 'numeric' });
-    const timeStr = d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
-    this.dom.syncLastTimeText.textContent = `上次同步：${dateStr} ${timeStr}`;
+    const locale = i18n.lang === 'en' ? 'en-US' : 'zh-TW';
+    const dateStr = d.toLocaleDateString(locale, { year: 'numeric', month: 'numeric', day: 'numeric' });
+    const timeStr = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    this.dom.syncLastTimeText.textContent = `${i18n.t('sync_last_prefix')}${dateStr} ${timeStr}`;
   }
 
   openSyncModal() {
@@ -876,7 +1065,7 @@ class App {
     this.updateSyncButtonStatus();
     this.closeModal(this.dom.modalSync);
     sound.playWaterDrop();
-    this.showToast(this.syncConfig.enabled ? '雲端同步設定已保存' : '已保存本地設定');
+    this.showToast(this.syncConfig.enabled ? i18n.t('toast_sync_saved') : i18n.t('toast_sync_local_saved'));
 
     if (this.syncConfig.enabled && this.syncConfig.autoSync) {
       this.scheduleCloudPush();
@@ -886,13 +1075,13 @@ class App {
   async onCreateGist() {
     const token = this.dom.syncTokenInput.value.trim();
     if (!token) {
-      this.showToast('請先填寫上方 GitHub Token');
+      this.showToast(i18n.t('toast_need_token'));
       this.dom.syncTokenInput.focus();
       return;
     }
 
     const btn = this.dom.btnCreateGist;
-    btn.textContent = '建立中...';
+    btn.textContent = i18n.t('toast_creating_gist');
     btn.disabled = true;
 
     try {
@@ -909,11 +1098,11 @@ class App {
       this.updateSyncTimeDisplay();
       this.updateSyncButtonStatus();
       sound.playInsightChime();
-      this.showToast('私有 Gist 建立成功，已完成首次同步');
+      this.showToast(i18n.t('toast_gist_success'));
     } catch (err) {
-      this.showToast(`建立失敗：${err.message}`);
+      this.showToast(i18n.t('toast_gist_fail', { msg: err.message }));
     } finally {
-      btn.textContent = '自動建立私有 Gist';
+      btn.textContent = i18n.t('btn_create_gist');
       btn.disabled = false;
     }
   }
@@ -922,7 +1111,7 @@ class App {
     const token = this.dom.syncTokenInput.value.trim();
     const gistId = this.dom.syncGistIdInput.value.trim();
     if (!token || !gistId) {
-      this.showToast('請先填寫 Token 與 Gist ID');
+      this.showToast(i18n.t('toast_need_token_and_gist'));
       return;
     }
     this.syncConfig.token = token;
@@ -937,7 +1126,7 @@ class App {
     const token = this.dom.syncTokenInput.value.trim();
     const gistId = this.dom.syncGistIdInput.value.trim();
     if (!token || !gistId) {
-      this.showToast('請先填寫 Token 與 Gist ID');
+      this.showToast(i18n.t('toast_need_token_and_gist'));
       return;
     }
     this.syncConfig.token = token;
@@ -975,12 +1164,12 @@ class App {
 
       if (!silent) {
         sound.playInsightChime();
-        this.showToast('心靈島已成功推送至雲端');
+        this.showToast(i18n.t('toast_push_success'));
       }
     } catch (err) {
       console.error('Cloud Push Error:', err);
       if (!silent) {
-        this.showToast(`上傳失敗: ${err.message}`);
+        this.showToast(i18n.t('toast_push_fail', { msg: err.message }));
       }
     } finally {
       this.isSyncing = false;
@@ -1011,14 +1200,14 @@ class App {
 
           if (!silent) {
             sound.playInsightChime();
-            this.showToast('已從雲端成功拉取最新島嶼資料');
+            this.showToast(i18n.t('toast_pull_success'));
           }
         }
       }
     } catch (err) {
       console.error('Cloud Pull Error:', err);
       if (!silent) {
-        this.showToast(`拉取失敗: ${err.message}`);
+        this.showToast(i18n.t('toast_pull_fail', { msg: err.message }));
       }
     } finally {
       this.isSyncing = false;

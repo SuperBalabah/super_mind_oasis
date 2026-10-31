@@ -115,6 +115,33 @@ body {
   transition: stroke 0.2s ease, transform 0.2s ease;
 }
 
+.lang-text-badge {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  border: none;
+  line-height: 1;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);
+}
+
+.icon-btn-pure:hover .lang-text-badge {
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+}
+
 .icon-btn-pure:hover {
   transform: scale(1.08);
 }

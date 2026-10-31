@@ -28,6 +28,10 @@
 
     <!-- Top Right Pure Borderless Utilities (Zero Ugly Frames, Zero Emojis) -->
     <nav class="top-controls">
+      <button id="btn-lang" class="icon-btn-pure" title="切換語言 / Switch Language">
+        <span class="lang-text-badge" id="lang-indicator">中</span>
+      </button>
+
       <button id="btn-ambience" class="icon-btn-pure" title="切換光景氛圍">
         <svg viewBox="0 0 24 24" id="icon-ambience-svg">
           <circle cx="12" cy="12" r="5" />
@@ -110,8 +114,8 @@
       </div>
 
       <div class="card-stats">
-        <div>扎根共存：<strong id="card-tree-days">3 天</strong></div>
-        <div>靜思關照：<strong id="card-tree-nurture">2 次</strong></div>
+        <div><span id="card-tree-days-label">扎根共存：</span><strong id="card-tree-days">3 天</strong></div>
+        <div><span id="card-tree-nurture-label">靜思關照：</span><strong id="card-tree-nurture">2 次</strong></div>
       </div>
 
       <div class="card-worry-quote">
@@ -126,8 +130,8 @@
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
             </svg>
-            <span>滋養關照</span>
-            <span class="btn-instruction-sub">(短按純關照 · 長按記感悟)</span>
+            <span id="label-hold-nurture">滋養關照</span>
+            <span class="btn-instruction-sub" id="label-hold-sub">(短按純關照 · 長按記感悟)</span>
           </div>
         </div>
 
@@ -266,12 +270,12 @@
 
         <div class="pet-detail-body" style="margin: 18px 0;">
           <div class="card-worry-quote" style="border-left-color: var(--accent-gold); margin-bottom: 14px;">
-            <div style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 4px;">守護習慣</div>
+            <div style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 4px;" id="pet-detail-habit-label">守護習慣</div>
             <div id="pet-detail-habit" style="color: #ffffff; font-weight: 500; font-size: 0.95rem;">每日深呼吸 5 分鐘</div>
           </div>
 
           <div class="card-stats" style="margin-bottom: 0;">
-            <div>累積陪伴：<strong id="pet-detail-care" style="color: var(--accent-gold); font-size: 0.95rem;">5 次</strong></div>
+            <div><span id="pet-detail-care-label">累積陪伴：</span><strong id="pet-detail-care" style="color: var(--accent-gold); font-size: 0.95rem;">5 次</strong></div>
           </div>
         </div>
 
